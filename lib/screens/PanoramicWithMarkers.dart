@@ -16,8 +16,8 @@ class MarkerData {
 
   MarkerData(this.longitude, this.latitude, this.nextImage,
       {this.label = "",
-      this.icon = Icons.location_pin,
-      this.color = Colors.red});
+        this.icon = Icons.location_pin,
+        this.color = Colors.red});
 }
 
 class PanoramaImage {
@@ -51,18 +51,18 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           panoramaImages.length,
           onSave: (data) => setState(() {
             panoramaImages[currentImageId].hotspots.add(
-                  Hotspot(
-                      longitude: longitude,
-                      latitude: latitude,
-                      name: data.label,
-                      widget: IconButton(onPressed: () {
-                        setState(() {
-                          currentImageId = data.nextImageId - 1;
-                        });
-                        print(currentImageId);
-                        print("Btn Pressed");
-                      }, icon: Icon(data.selectedIcon),iconSize: 43,))
-                );
+                Hotspot(
+                    longitude: longitude,
+                    latitude: latitude,
+                    name: data.label,
+                    widget: IconButton(onPressed: () {
+                      setState(() {
+                        currentImageId = data.nextImageId - 1;
+                      });
+                      print(currentImageId);
+                      print("Btn Pressed");
+                    }, icon: Icon(data.selectedIcon),iconSize: 43,))
+            );
             print("Marker Added");
           }),
           onCancel: () => Navigator.of(context).pop(),
@@ -104,7 +104,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   @override
   Widget build(BuildContext context) {
     final currentImage =
-        panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
+    panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
     final currentMarkers = currentImage?.markers ?? [];
     return Scaffold(
       body: Stack(
@@ -139,7 +139,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           Stack(
             children: currentMarkers.map((marker) {
               final screenPos =
-                  _getScreenPosition(marker.longitude, marker.latitude);
+              _getScreenPosition(marker.longitude, marker.latitude);
               if (screenPos == null) {
                 return const SizedBox.shrink();
               }
