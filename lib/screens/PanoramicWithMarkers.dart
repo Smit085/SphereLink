@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 
+import '../utils/MarkerFormDialog.dart';
+
 class MarkerData {
   double longitude;
   double latitude;
@@ -14,8 +16,8 @@ class MarkerData {
 
   MarkerData(this.longitude, this.latitude, this.nextImage,
       {this.label = "",
-        this.icon = Icons.location_pin,
-        this.color = Colors.red});
+      this.icon = Icons.location_pin,
+      this.color = Colors.red});
 }
 
 class PanoramaImage {
@@ -44,61 +46,41 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   void _addMarker(double longitude, double latitude) {
     showDialog(
       context: context,
-      builder: (context) {
-        String label = "";
-        String nextImageIdInput = "";
-        return AlertDialog(
-          title: const Text("Add Marker",style: TextStyle(fontSize: 16)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: const InputDecoration(labelText: "Marker Label",labelStyle: TextStyle(fontSize: 14)),
-                onChanged: (value) => label = value,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: "Next Image ID",labelStyle: TextStyle(fontSize: 14)),
-                keyboardType: TextInputType.number,
-                onChanged: (value) => nextImageIdInput = value,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () {
-                int? nextImageId = int.tryParse(nextImageIdInput);
-                if (nextImageId != null &&
-                    nextImageId > 0 &&
-                    nextImageId <= panoramaImages.length) {
-                  setState(() {
-                    // panoramaImages[currentImageId].markers.add(
-                    //   MarkerData(longitude, latitude, nextImageId, label: label),
-                    // );
-                    panoramaImages[currentImageId].hotspots.add(
-                      Hotspot(longitude: longitude, latitude: latitude, name: label, widget: const Icon(Icons.location_pin)),
-                    );
-                  });
-                  Navigator.pop(context);
-                } else {
-                  // Show error if nextImageId is invalid
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Invalid Next Image ID"),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-              child: const Text("OK"),
-            ),
-          ],
+      builder: (BuildContext context) {
+        return MarkerFormDialog(
+          panoramaImages.length,
+          onSave: (data) => setState(() {
+            panoramaImages[currentImageId].hotspots.add(
+                  Hotspot(
+                      longitude: longitude,
+                      latitude: latitude,
+                      name: data.label,
+                      widget: IconButton(onPressed: () {
+                        setState(() {
+                          currentImageId = data.nextImageId - 1;
+                        });
+                        print(currentImageId);
+                        print("Btn Pressed");
+                      }, icon: Icon(data.selectedIcon),iconSize: 43,))
+                );
+            print("Marker Added");
+          }),
+          onCancel: () => Navigator.of(context).pop(),
         );
       },
     );
+
+    // showDialog(
+    //   barrierDismissible: true,
+    //   context: context,
+    //   builder: (BuildContext context) {
+    //     return MarkerFormDialog(
+    //       panoramaImages.length,
+    //       onSave: (data) => print('Data saved: $data'),
+    //       onCancel: () => Navigator.of(context).pop(),
+    //     );
+    //   },
+    // );
   }
 
   void _deleteMarker(MarkerData marker) {
@@ -121,7 +103,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
 
   @override
   Widget build(BuildContext context) {
-    final currentImage = panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
+    final currentImage =
+        panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
     final currentMarkers = currentImage?.markers ?? [];
     return Scaffold(
       body: Stack(
@@ -156,8 +139,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           Stack(
             children: currentMarkers.map((marker) {
               final screenPos =
-              _getScreenPosition(marker.longitude, marker.latitude);
-
+                  _getScreenPosition(marker.longitude, marker.latitude);
               if (screenPos == null) {
                 return const SizedBox.shrink();
               }
@@ -168,7 +150,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   onTap: () {
                   },
                   onLongPress: () {
-                    print("Long Pressed Marker");
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -194,7 +175,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                       print("Change");
                       setState(() {
                         if (marker.nextImage <= panoramaImages.length) {
-                          currentImageId = marker.nextImage-1;
+                          currentImageId = marker.nextImage - 1;
                         }
                       });
                     },
@@ -250,7 +231,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                       padding: const EdgeInsets.all(8.0),
                       child: Stack(
                         children: [
-                          // The image thumbnail inside the Stack with fixed height
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: SizedBox(
@@ -266,13 +246,15 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                             top: 5,
                             right: 5,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.black.withAlpha(140),
-                                shape: BoxShape.circle, // Circular shape for the border
+                                shape: BoxShape
+                                    .circle,
                               ),
                               child: Text(
-                                '${index + 1}',  // Image number (1-based index)
+                                '${index + 1}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
