@@ -12,18 +12,21 @@ class MarkerData {
   final String label;
   final IconData icon;
   final Color color;
-  final int nextImage;
+  final int nextImageId;
 
-  MarkerData(this.longitude, this.latitude, this.nextImage,
-      {this.label = "",
-        this.icon = Icons.location_pin,
-        this.color = Colors.red});
+  MarkerData({
+    required this.longitude,
+    required this.latitude,
+    required this.color,
+    this.label = "",
+    this.icon = Icons.location_pin,
+    this.nextImageId = -1,
+  });
 }
 
 class PanoramaImage {
   final File image;
   final List<MarkerData> markers;
-  final List<Hotspot> hotspots = [];
 
   PanoramaImage(this.image) : markers = [];
 }
@@ -50,37 +53,33 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
         return MarkerFormDialog(
           panoramaImages.length,
           onSave: (data) => setState(() {
-            panoramaImages[currentImageId].hotspots.add(
-                Hotspot(
+            panoramaImages[currentImageId].markers.add(
+                  MarkerData(
                     longitude: longitude,
                     latitude: latitude,
-                    name: data.label,
-                    widget: IconButton(onPressed: () {
-                      setState(() {
-                        currentImageId = data.nextImageId - 1;
-                      });
-                      print(currentImageId);
-                      print("Btn Pressed");
-                    }, icon: Icon(data.selectedIcon),iconSize: 43,))
-            );
+                    label: data.label,
+                    icon: data.selectedIcon,
+                    nextImageId: data.nextImageId,
+                    color: data.iconColor,
+                  ),
+                  // MarkerData(
+                  //     longitude: longitude,
+                  //     latitude: latitude,
+                  //     name: data.label,
+                  //     widget: IconButton(onPressed: () {
+                  //       setState(() {
+                  //         currentImageId = data.nextImageId - 1;
+                  //       });
+                  //       print(currentImageId);
+                  //       print("Btn Pressed");
+                  //     }, icon: Icon(data.selectedIcon),iconSize: 43,))
+                );
             print("Marker Added");
           }),
           onCancel: () => Navigator.of(context).pop(),
         );
       },
     );
-
-    // showDialog(
-    //   barrierDismissible: true,
-    //   context: context,
-    //   builder: (BuildContext context) {
-    //     return MarkerFormDialog(
-    //       panoramaImages.length,
-    //       onSave: (data) => print('Data saved: $data'),
-    //       onCancel: () => Navigator.of(context).pop(),
-    //     );
-    //   },
-    // );
   }
 
   void _deleteMarker(MarkerData marker) {
@@ -104,16 +103,32 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   @override
   Widget build(BuildContext context) {
     final currentImage =
-    panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
+        panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
     final currentMarkers = currentImage?.markers ?? [];
     return Scaffold(
       body: Stack(
         children: [
           if (panoramaImages.isNotEmpty)
             PanoramaViewer(
-              hotspots: panoramaImages[currentImageId].hotspots,
               animReverse: true,
               sensitivity: 1.8,
+              hotspots: currentImage?.markers.map((marker) {
+                return Hotspot(
+                  longitude: marker.longitude,
+                  latitude: marker.latitude,
+                  name: marker.label,
+                  widget: IconButton(
+                    onPressed: () {
+                      print("Btn Pressed");
+                      setState(() {
+                        currentImageId = marker.nextImageId - 1;
+                      });
+                    },
+                    icon: Icon(marker.icon, color: marker.color),
+                    iconSize: 40,
+                  ),
+                );
+              }).toList(),
               child: Image.file(currentImage!.image),
               onViewChanged: (longitude, latitude, tilt) {
                 setState(() {
@@ -131,64 +146,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
             )
           else
             const Center(
+                child: Center(
               child: Text(
                 "No images added. Use the '+' button to add images.",
                 style: TextStyle(color: Colors.black, fontSize: 16),
               ),
-            ),
-          Stack(
-            children: currentMarkers.map((marker) {
-              final screenPos =
-              _getScreenPosition(marker.longitude, marker.latitude);
-              if (screenPos == null) {
-                return const SizedBox.shrink();
-              }
-              return Positioned(
-                left: screenPos.dx - 20,
-                top: screenPos.dy - 30,
-                child: GestureDetector(
-                  onTap: () {
-                  },
-                  onLongPress: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("Marker Options"),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(marker.label),
-                            TextButton(
-                              onPressed: () {
-                                _deleteMarker(marker);
-                                Navigator.pop(context);
-                              },
-                              child: const Text("Delete"),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                  child: IconButton(
-                    onPressed: () {
-                      print("Change");
-                      setState(() {
-                        if (marker.nextImage <= panoramaImages.length) {
-                          currentImageId = marker.nextImage - 1;
-                        }
-                      });
-                    },
-                    icon: const Icon(
-                      Icons.arrow_circle_up,
-                      size: 50,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+            )),
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -250,8 +213,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                   horizontal: 6, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.black.withAlpha(140),
-                                shape: BoxShape
-                                    .circle,
+                                shape: BoxShape.circle,
                               ),
                               child: Text(
                                 '${index + 1}',
@@ -274,28 +236,5 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
         ],
       ),
     );
-  }
-
-  Offset? _getScreenPosition(double markerLongitude, double markerLatitude) {
-    double diffLongitude = markerLongitude - currentLongitude;
-    double diffLatitude = markerLatitude - currentLatitude;
-
-    while (diffLongitude > 180) diffLongitude -= 360;
-    while (diffLongitude < -180) diffLongitude += 360;
-
-    double screenX = (diffLongitude / 180) * MediaQuery.of(context).size.width +
-        MediaQuery.of(context).size.width / 2;
-    double screenY =
-        (-diffLatitude / 120) * MediaQuery.of(context).size.height +
-            MediaQuery.of(context).size.height / 2;
-
-    if (screenX < 0 ||
-        screenX > MediaQuery.of(context).size.width ||
-        screenY < 0 ||
-        screenY > MediaQuery.of(context).size.height) {
-      return null;
-    }
-
-    return Offset(screenX, screenY);
   }
 }

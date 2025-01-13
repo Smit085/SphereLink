@@ -9,6 +9,7 @@ class MarkerFormData {
   String description;
   int nextImageId;
   String? link;
+  Color iconColor;
   File? image;
 
   MarkerFormData({
@@ -16,6 +17,7 @@ class MarkerFormData {
     required this.label,
     required this.nextImageId,
     required this.description,
+    required this.iconColor,
     this.link,
     this.image,
   });
@@ -46,6 +48,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
 
   final _formKey = GlobalKey<FormState>();
   IconData _selectedIcon = Icons.location_on;
+   Color _iconColor = Colors.red;
   (String, IconData) _selectedAction = actionOptions[0];
   final _labelController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -275,18 +278,24 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                             contentPadding: EdgeInsets.zero),
                         items: markerOptions.entries.map((marker) {
                           final icon = marker.value.icon;
-                          final color = marker.value
-                              .color; // Assuming markerOption has a 'color' property
+                          final color = marker.value.color;
                           return DropdownMenuItem(
                             value: icon,
-                            child: Icon(icon,
-                                color:
-                                    color), // Use the color from markerOption
+                            child: Icon(icon, color: color),
                           );
                         }).toList(),
-                        onChanged: (newIcon) => setState(() {
-                          _selectedIcon = newIcon!;
-                        }),
+                        onChanged: (newIcon) {
+                          if (newIcon != null) {
+                            setState(() {
+                              _selectedIcon = newIcon;
+                              // Find the corresponding color
+                              _iconColor = markerOptions.entries
+                                  .firstWhere((entry) => entry.value.icon == newIcon)
+                                  .value
+                                  .color;
+                            });
+                          }
+                        },
                       ))
                 ],
               ),
@@ -306,6 +315,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
             if (_formKey.currentState!.validate()) {
               widget.onSave(MarkerFormData(
                 selectedIcon: _selectedIcon,
+                iconColor: _iconColor,
                 label: _labelController.text,
                 description: _descriptionController.text,
                 nextImageId: int.tryParse(_nextImageIdController.text) ?? 0,
