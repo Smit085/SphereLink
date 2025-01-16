@@ -167,6 +167,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
               height: 100,
               color: Colors.black.withOpacity(0.5),
               child: ReorderableListView(
+                proxyDecorator:  (Widget child, int index, Animation<double> animation) {
+                  return Material(
+                    color: Colors.transparent,
+                    child: child,
+                  );
+                },
                 scrollDirection: Axis.horizontal,
                 onReorder: (oldIndex, newIndex) {
                   setState(() {
@@ -180,18 +186,19 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 children: [
                   for (int index = 0; index < panoramaImages.length; index++)
                     GestureDetector(
-                      key: Key('$index'),  // This key is required for reordering.
+                      key: Key('$index'),
                       onTap: () {
                         setState(() {
                           currentImageId = index;
-                          _selectedIndex = null;
-                        });
-                      },
-                      onLongPress: () {
-                        setState(() {
                           _selectedIndex = index;
+
                         });
                       },
+                      // onLongPress: () {
+                      //   setState(() {
+                      //     _selectedIndex = index;
+                      //   });
+                      // },
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Stack(

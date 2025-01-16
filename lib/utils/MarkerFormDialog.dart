@@ -60,12 +60,22 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
 
   static const Map<String, ({IconData icon, Color color})> markerOptions = {
     "location": (icon: Icons.location_on, color: Colors.red),
+    "adjust": (icon: Icons.adjust, color: Colors.white),
     "arrowUp": (icon: Icons.arrow_circle_up_outlined, color: Colors.white10),
+    "arrowdown": (icon: Icons.arrow_circle_down_outlined, color: Colors.white10),
+    "assistantright": (icon: Icons.assistant_direction_outlined, color: Colors.white10),
+    "flag": (icon: Icons.flag, color: Colors.white10),
+    "danger": (icon: Icons.dangerous, color: Colors.blue),
+    "block": (icon: Icons.block, color: Colors.red),
     "info": (icon: Icons.info, color: Colors.blue),
+    "announcement": (icon: Icons.announcement_outlined, color: Colors.blue),
     "cart": (icon: Icons.shopping_cart, color: Colors.orange),
+    "shopping": (icon: Icons.shopping_bag, color: Colors.orange),
     "restaurant": (icon: Icons.restaurant, color: Colors.red),
     "hotel": (icon: Icons.hotel, color: Colors.purple),
     "parking": (icon: Icons.local_parking, color: Colors.blue),
+    "target": (icon: Icons.api_sharp, color: Colors.red),
+    "architecture": (icon: Icons.architecture, color: Colors.red),
   };
 
   @override
