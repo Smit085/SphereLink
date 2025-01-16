@@ -26,14 +26,14 @@ class MarkerFormData {
 class MarkerFormDialog extends StatefulWidget {
   final Function(MarkerFormData) onSave;
   final VoidCallback onCancel;
-  final int maxImageId;
+  final List<String> imageNames;
 
-  const MarkerFormDialog(
-    int length, {
+  const MarkerFormDialog({
     super.key,
     required this.onSave,
     required this.onCancel,
-  }) : maxImageId = length;
+    required this.imageNames,
+  });
 
   @override
   State<MarkerFormDialog> createState() => _MarkerFormDialogState();
@@ -48,12 +48,13 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
 
   final _formKey = GlobalKey<FormState>();
   IconData _selectedIcon = Icons.location_on;
-   Color _iconColor = Colors.red;
+  late String _selectedNextImageName;
+  Color _iconColor = Colors.red;
   (String, IconData) _selectedAction = actionOptions[0];
   final _labelController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _linkController = TextEditingController();
-  final _nextImageIdController = TextEditingController(); // For Navigation
+  final _nextImageNameController = TextEditingController();
   File? _image;
   final ImagePicker _picker = ImagePicker();
 
@@ -68,11 +69,18 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _selectedNextImageName =
+        widget.imageNames.isNotEmpty ? widget.imageNames.first : '';
+  }
+
+  @override
   void dispose() {
     _labelController.dispose();
     _descriptionController.dispose();
     _linkController.dispose();
-    _nextImageIdController.dispose();
+    _nextImageNameController.dispose();
     super.dispose();
   }
 
@@ -164,23 +172,30 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
               value?.isEmpty ?? true ? "Label is required" : null,
         );
       case "Navigation":
-        return _buildTextField(
-          label: "Next Image No.",
-          controller: _nextImageIdController,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        return DropdownButtonFormField<String>(
+          decoration: const InputDecoration(
+            labelText: "Next Image",
+            border: OutlineInputBorder(),
+          ),
+          value: _selectedNextImageName,
+          onChanged: (newValue) {
+            setState(() {
+              _selectedNextImageName = newValue!;
+              _nextImageNameController.text = newValue.toString() ?? '';
+            });
+          },
           validator: (value) {
-            if (value == null || value.isEmpty) {
+            if (value == null) {
               return "Next Image No. is required";
-            }
-            final nextImageId = int.tryParse(value);
-            if (nextImageId == null ||
-                nextImageId <= 0 ||
-                nextImageId > widget.maxImageId) {
-              return "Please enter a valid ID between 1 and ${widget.maxImageId}";
             }
             return null;
           },
+          items: widget.imageNames.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Text(item),
+            );
+          }).toList(),
         );
       case "Banner":
         return Column(
@@ -213,123 +228,137 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      title: const Center(
-        child: Text(
-          "Add Marker",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Divider(),
-              Row(
-                children: [
-                  const Expanded(
-                      flex: 3,
-                      child: Text(
-                        "Reference Action:",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      )),
-                  const Spacer(),
-                  SizedBox(
-                    width: 160,
-                    child: DropdownButtonFormField<(String, IconData)>(
-                      value: _selectedAction,
-                      decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8)),
-                      items: actionOptions.map((item) {
-                        return DropdownMenuItem(
-                          value: item,
-                          child: Row(
-                            children: [
-                              Text(item.$1),
-                              const SizedBox(width: 8),
-                              Icon(item.$2, size: 18),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        setState(() => _selectedAction = newValue!);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Text(
-                    "Select Icon:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                      width: 70,
-                      child: DropdownButtonFormField<IconData>(
-                        value: _selectedIcon,
-                        decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.zero),
-                        items: markerOptions.entries.map((marker) {
-                          final icon = marker.value.icon;
-                          final color = marker.value.color;
-                          return DropdownMenuItem(
-                            value: icon,
-                            child: Icon(icon, color: color),
-                          );
-                        }).toList(),
-                        onChanged: (newIcon) {
-                          if (newIcon != null) {
-                            setState(() {
-                              _selectedIcon = newIcon;
-                              // Find the corresponding color
-                              _iconColor = markerOptions.entries
-                                  .firstWhere((entry) => entry.value.icon == newIcon)
-                                  .value
-                                  .color;
-                            });
-                          }
-                        },
-                      ))
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildDynamicInputs(),
-            ],
+    return SingleChildScrollView(
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: const Center(
+          child: Text(
+            "Add Marker",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
         ),
+        content: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: 300,
+              maxWidth: 400,
+            ),
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Divider(),
+                    Row(
+                      children: [
+                        const Expanded(
+                            flex: 3,
+                            child: Text(
+                              "Reference Action:",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            )),
+                        const Spacer(),
+                        SizedBox(
+                          width: 160,
+                          child: DropdownButtonFormField<(String, IconData)>(
+                              value: _selectedAction,
+                              decoration: const InputDecoration(
+                                  contentPadding:
+                                      EdgeInsets.symmetric(horizontal: 8)),
+                              items: actionOptions.map((item) {
+                                return DropdownMenuItem(
+                                  value: item,
+                                  child: Row(
+                                    children: [
+                                      Text(item.$1),
+                                      const SizedBox(width: 8),
+                                      Icon(item.$2, size: 18),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (newValue) {
+                                setState(() {
+                                  _selectedAction = newValue!;
+                                  _labelController.clear();
+                                  _descriptionController.clear();
+                                  _linkController.clear();
+                                  _image = null;
+                                });
+                              }),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Text(
+                          "Select Icon:",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        SizedBox(
+                            width: 70,
+                            child: DropdownButtonFormField<IconData>(
+                              value: _selectedIcon,
+                              decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.zero),
+                              items: markerOptions.entries.map((marker) {
+                                final icon = marker.value.icon;
+                                final color = marker.value.color;
+                                return DropdownMenuItem(
+                                  value: icon,
+                                  child: Icon(icon, color: color),
+                                );
+                              }).toList(),
+                              onChanged: (newIcon) {
+                                if (newIcon != null) {
+                                  setState(() {
+                                    _selectedIcon = newIcon;
+                                    // Find the corresponding color
+                                    _iconColor = markerOptions.entries
+                                        .firstWhere((entry) =>
+                                            entry.value.icon == newIcon)
+                                        .value
+                                        .color;
+                                  });
+                                }
+                              },
+                            ))
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDynamicInputs(),
+                  ],
+                ),
+              ),
+            )),
+        actions: [
+          TextButton(
+            onPressed: widget.onCancel,
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                widget.onSave(MarkerFormData(
+                  selectedIcon: _selectedIcon,
+                  iconColor: _iconColor,
+                  label: _labelController.text,
+                  description: _descriptionController.text,
+                  nextImageId: widget.imageNames.indexOf(_selectedNextImageName),
+                  link: _linkController.text.isNotEmpty
+                      ? _linkController.text
+                      : null,
+                  image: _image,
+                ));
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: widget.onCancel,
-          child: const Text("Cancel"),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              widget.onSave(MarkerFormData(
-                selectedIcon: _selectedIcon,
-                iconColor: _iconColor,
-                label: _labelController.text,
-                description: _descriptionController.text,
-                nextImageId: int.tryParse(_nextImageIdController.text) ?? 0,
-                link: _linkController.text.isNotEmpty
-                    ? _linkController.text
-                    : null,
-                image: _image,
-              ));
-              Navigator.of(context).pop();
-            }
-          },
-          child: const Text("Save"),
-        ),
-      ],
     );
   }
 }

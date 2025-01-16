@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Marker App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const PanoramicWithMarkers(),
+      home: PanoramicWithMarkers(),
     );
   }
 }
