@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
+import 'package:spherelink/utils/mergeImages.dart';
 
-import '../utils/MarkerFormDialog.dart';
+import '../utils/markerFormDialog.dart';
 
 class MarkerData {
   double longitude;
@@ -107,10 +108,82 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     }
   }
 
+  Future<void> _addMergedPanoramaImages() async {
+    final List<XFile> pickedImages = await _imagePicker.pickMultiImage(
+      limit: 2,
+    );
+
+    if (pickedImages.length == 2) {
+      // Show the loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing the dialog
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("Processing..."),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      try {
+        // Perform the image merging
+        File? mergedImageFile = await mergeImages(pickedImages, context);
+
+        // Dismiss the loading dialog
+        Navigator.of(context).pop();
+
+        if (mergedImageFile != null) {
+          setState(() {
+            int imageName = panoramaImages.length + 1;
+            panoramaImages
+                .add(PanoramaImage(mergedImageFile, imageName.toString()));
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                duration: Duration(milliseconds: 800),
+                content: Text('Images successfully merged.')),
+          );
+        } else {
+          // Show an error message if merging failed
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                duration: Duration(milliseconds: 800),
+                content: Text('Failed to merge images. Please try again.')),
+          );
+        }
+      } catch (e) {
+        // Dismiss the dialog and handle any errors
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: $e')),
+        );
+      }
+    } else {
+      // Inform the user to select exactly two images
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please select exactly two images to merge.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentImage =
-    panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
+        panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
     final currentMarkers = currentImage?.markers ?? [];
 
     return Scaffold(
@@ -156,18 +229,19 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           else
             const Center(
                 child: Center(
-                  child: Text(
-                    "No images added. Use the '+' button to add images.",
-                    style: TextStyle(color: Colors.black, fontSize: 16),
-                  ),
-                )),
+              child: Text(
+                "No images added. Use the '+' button to add images.",
+                style: TextStyle(color: Colors.black, fontSize: 16),
+              ),
+            )),
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
               height: 100,
               color: Colors.black.withOpacity(0.5),
               child: ReorderableListView(
-                proxyDecorator:  (Widget child, int index, Animation<double> animation) {
+                proxyDecorator:
+                    (Widget child, int index, Animation<double> animation) {
                   return Material(
                     color: Colors.transparent,
                     child: child,
@@ -191,7 +265,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                         setState(() {
                           currentImageId = index;
                           _selectedIndex = index;
-
                         });
                       },
                       // onLongPress: () {
@@ -227,18 +300,24 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                         int editingIndex = index;
                                         showDialog(
                                           context: context,
-                                          builder: (context) => SingleChildScrollView(
+                                          builder: (context) =>
+                                              SingleChildScrollView(
                                             child: AlertDialog(
                                               title: const Text('Edit Name'),
                                               content: ConstrainedBox(
-                                                constraints: const BoxConstraints(
-                                                  maxWidth: 300, // Set a maximum width for the dialog content
+                                                constraints:
+                                                    const BoxConstraints(
+                                                  maxWidth:
+                                                      300, // Set a maximum width for the dialog content
                                                 ),
                                                 child: TextFormField(
-                                                  controller: _newImageNameController,
-                                                  decoration: const InputDecoration(
+                                                  controller:
+                                                      _newImageNameController,
+                                                  decoration:
+                                                      const InputDecoration(
                                                     labelText: "Enter New Name",
-                                                    border: OutlineInputBorder(),
+                                                    border:
+                                                        OutlineInputBorder(),
                                                   ),
                                                 ),
                                               ),
@@ -251,8 +330,9 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                                 TextButton(
                                                   onPressed: () {
                                                     setState(() {
-                                                      panoramaImages[editingIndex]
-                                                          .imageName =
+                                                      panoramaImages[
+                                                                  editingIndex]
+                                                              .imageName =
                                                           _newImageNameController
                                                               .text;
                                                     });
@@ -335,7 +415,46 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   GestureDetector(
                     key: const Key('add_image'),
                     onTap: () {
-                      _addPanoramaImage();
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return SafeArea(
+                            // Important for avoiding system UI overlap
+                            child: Wrap(
+                              // Use Wrap to prevent overflow
+                              children: [
+                                ListTile(
+                                  leading:
+                                      const Icon(Icons.add), // Optional icon
+                                  title: const Text('Add 360 Image'),
+                                  onTap: () {
+                                    _addPanoramaImage();
+                                    Navigator.pop(
+                                        context); // Close the bottom sheet
+                                    // _showSnackBar(context, 'Action 1 was chosen.');
+                                    // Perform Action 1
+                                  },
+                                ),
+                                ListTile(
+                                  leading:
+                                      const Icon(Icons.remove), // Optional icon
+                                  title: const Text(
+                                      'Merge and add two Panorama images'),
+                                  onTap: () {
+                                    _addMergedPanoramaImages();
+                                    Navigator.pop(
+                                        context); // Close the bottom sheet
+                                    // _showSnackBar(context, 'Action 2 was chosen.');
+                                    // Perform Action 2
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+
+                      // _addPanoramaImage();
                       setState(() {
                         _selectedIndex = null;
                       });
