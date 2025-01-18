@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
@@ -15,6 +16,7 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Marker App',

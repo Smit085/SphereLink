@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.0"
+  balloon_widget:
+    dependency: "direct main"
+    description:
+      name: balloon_widget
+      sha256: "3619567180072998367bdadea8feae1ea05fa9f1d8275116fec877db50faa6e7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0+1"
   boolean_selector:
     dependency: transitive
     description:
@@ -153,6 +161,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  defer_pointer:
+    dependency: transitive
+    description:
+      name: defer_pointer
+      sha256: d69e6f8c1d0f052d2616cc1db3782e0ea73f42e4c6f6122fd1a548dfe79faf02
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: "567c64b3cb4cf82397aac55f4f0cbd3ca20d77c6c03bedbc4ceaddc08904aef7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.7"
   fake_async:
     dependency: transitive
     description:
@@ -256,6 +280,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  google_fonts:
+    dependency: "direct main"
+    description:
+      name: google_fonts
+      sha256: b1ac0fe2832c9cc95e5e88b57d627c5e68c223b9657f4b96e1487aa9098c7b82
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.2.1"
   google_maps:
     dependency: transitive
     description:

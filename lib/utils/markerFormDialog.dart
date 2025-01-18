@@ -11,6 +11,7 @@ class MarkerFormData {
   String? link;
   Color iconColor;
   File? image;
+  String selectedAction;
 
   MarkerFormData({
     required this.selectedIcon,
@@ -18,6 +19,7 @@ class MarkerFormData {
     required this.nextImageId,
     required this.description,
     required this.iconColor,
+    required this.selectedAction,
     this.link,
     this.image,
   });
@@ -55,7 +57,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   final _descriptionController = TextEditingController();
   final _linkController = TextEditingController();
   final _nextImageNameController = TextEditingController();
-  File? _image;
+  File? _bannerImage;
   final ImagePicker _picker = ImagePicker();
 
   static const Map<String, ({IconData icon, Color color})> markerOptions = {
@@ -98,7 +100,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     try {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       setState(() {
-        _image = pickedFile != null ? File(pickedFile.path) : null;
+        _bannerImage = pickedFile != null ? File(pickedFile.path) : null;
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,13 +144,13 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
               "Add Image:",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            if (_image != null)
+            if (_bannerImage != null)
               SizedBox(
                 width: 80,
                 height: 60,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.file(_image!, fit: BoxFit.cover),
+                  child: Image.file(_bannerImage!, fit: BoxFit.cover),
                 ),
               ),
           ],
@@ -177,6 +179,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
       case "Label":
         return _buildTextField(
           label: "Give Label",
+          maxLength: 50,
           controller: _labelController,
           validator: (value) =>
               value?.isEmpty ?? true ? "Label is required" : null,
@@ -212,6 +215,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
           children: [
             _buildTextField(
               label: "Label",
+              maxLength: 50,
               controller: _labelController,
               validator: (value) =>
                   value?.isEmpty ?? true ? "Label is required" : null,
@@ -219,10 +223,9 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
             _buildTextField(
               label: "Description",
               controller: _descriptionController,
-              maxLength: 50,
-              validator: (value) => value != null && value.length > 50
-                  ? "Max 50 characters allowed"
-                  : null,
+              maxLength: 150,
+              validator: (value) =>
+              value?.isEmpty ?? true ? "Description is required" : null,
             ),
             _buildTextField(
               label: "Link",
@@ -293,7 +296,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                                   _labelController.clear();
                                   _descriptionController.clear();
                                   _linkController.clear();
-                                  _image = null;
+                                  _bannerImage = null;
                                 });
                               }),
                         ),
@@ -352,6 +355,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
             onPressed: () {
               if (_formKey.currentState!.validate()) {
                 widget.onSave(MarkerFormData(
+                  selectedAction: _selectedAction.$1,
                   selectedIcon: _selectedIcon,
                   iconColor: _iconColor,
                   label: _labelController.text,
@@ -360,7 +364,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                   link: _linkController.text.isNotEmpty
                       ? _linkController.text
                       : null,
-                  image: _image,
+                  image: _bannerImage,
                 ));
                 Navigator.of(context).pop();
               }

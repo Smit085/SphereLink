@@ -1,27 +1,37 @@
 import 'dart:io';
-
+import 'dart:ui';
+import 'dart:math' as math;
+import 'package:balloon_widget/balloon_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:spherelink/utils/mergeImages.dart';
 
 import '../utils/markerFormDialog.dart';
+import '../utils/nipPainter.dart';
 
 class MarkerData {
   double longitude;
   double latitude;
   final String label;
+  final String description;
   final IconData icon;
   final Color color;
   final int nextImageId;
+  String action;
+  File? bannerImage;
 
   MarkerData({
+    required this.description,
+    required this.action,
     required this.longitude,
     required this.latitude,
     required this.color,
     this.label = "",
     this.icon = Icons.location_pin,
     this.nextImageId = -1,
+    this.bannerImage
   });
 }
 
@@ -43,6 +53,7 @@ class PanoramicWithMarkers extends StatefulWidget {
 class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   final _newImageNameController = TextEditingController();
   int? _selectedIndex;
+  MarkerData? selectedMarker;
   double currentLongitude = 0.0;
   double currentLatitude = 0.0;
   int currentImageId = 0;
@@ -67,6 +78,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     icon: data.selectedIcon,
                     nextImageId: data.nextImageId,
                     color: data.iconColor,
+                    action: data.selectedAction,
+                    description: data.description,
                   ),
                   // MarkerData(
                   //     longitude: longitude,
@@ -86,6 +99,17 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
         );
       },
     );
+  }
+
+  void _showMarkerLabel(MarkerData marker) {
+    setState(() {
+      selectedMarker = marker; // Update selected marker
+    });
+    Future.delayed(const Duration(seconds: 20), () {
+      setState(() {
+        selectedMarker = null; // Hide balloon after a delay
+      });
+    });
   }
 
   void _deleteMarker(MarkerData marker) {
@@ -114,10 +138,9 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     );
 
     if (pickedImages.length == 2) {
-      // Show the loading dialog
       showDialog(
         context: context,
-        barrierDismissible: false, // Prevent dismissing the dialog
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return Dialog(
             shape: RoundedRectangleBorder(
@@ -139,10 +162,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       );
 
       try {
-        // Perform the image merging
         File? mergedImageFile = await mergeImages(pickedImages, context);
 
-        // Dismiss the loading dialog
         Navigator.of(context).pop();
 
         if (mergedImageFile != null) {
@@ -168,13 +189,16 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
         // Dismiss the dialog and handle any errors
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: $e')),
+          SnackBar(
+              duration: Duration(milliseconds: 800),
+              content: Text('An error occurred: $e')),
         );
       }
     } else {
       // Inform the user to select exactly two images
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
+            duration: Duration(milliseconds: 800),
             content: Text('Please select exactly two images to merge.')),
       );
     }
@@ -202,12 +226,19 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   widget: IconButton(
                     onPressed: () {
                       print("Btn Pressed");
-                      setState(() {
-                        currentImageId = marker.nextImageId - 1;
-                      });
+                      switch (marker.action) {
+                        case "Navigation":
+                          setState(() {
+                            currentImageId = marker.nextImageId - 1;
+                          });
+                        case "Label":
+                          _showMarkerLabel(marker);
+                        case "Banner":
+                          _showMarkerLabel(marker);
+                      }
                     },
                     icon: Icon(marker.icon, color: marker.color),
-                    iconSize: 40,
+                    iconSize: 35,
                   ),
                 );
               }).toList(),
@@ -234,6 +265,108 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 style: TextStyle(color: Colors.black, fontSize: 16),
               ),
             )),
+          if (selectedMarker != null)
+            Positioned(
+              left: MediaQuery.of(context).size.width / 1.40,
+              top: MediaQuery.of(context).size.height / 25,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  Positioned(
+                    top: 12,
+                    left: -14.5,
+                    child: Transform.rotate(
+                      angle: -90 * math.pi / 180,
+                      child: CustomPaint(
+                        painter: NipPainter(
+                          borderColor: Colors.white.withAlpha(150),
+                        ),
+                        child: const SizedBox(
+                          width: 20,
+                          height: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                      child: Container(
+                        width: MediaQuery.of(context).size.width / 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(120),
+                          borderRadius: BorderRadius.circular(2),
+                          border: Border.all(
+                            color: Colors.white.withAlpha(150),
+                            width: 1.5,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width / 2,
+                            maxHeight: MediaQuery.of(context).size.height / 2,
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: SizedBox(
+                                    height: 100,
+                                    child: selectedMarker?.bannerImage != null
+                                        ? Image.file(
+                                      selectedMarker!.bannerImage!,
+                                      fit: BoxFit.cover,
+                                    )
+                                        : Container( // Placeholder widget
+                                      color: Colors.grey[200],
+                                      child: const Center(child: Icon(Icons.image, color: Colors.grey)),
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    selectedMarker!.label,
+                                    style: GoogleFonts.tinos(
+                                      height: 1.2,
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ).copyWith(
+                                        color: Colors.black.withAlpha(160)),
+                                    softWrap: true,
+                                  ),
+                                ),
+                                if (selectedMarker?.description != "")
+                                  const Divider(
+                                    height: 2,
+                                    color: Colors.black12,
+                                  ),
+                                if (selectedMarker?.description != "")
+                                  Flexible(
+                                    child: Text(
+                                      selectedMarker!.description,
+                                      style: GoogleFonts.abhayaLibre(
+                                          color: Colors.black87, height: 1.2),
+                                      softWrap: true,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -411,7 +544,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                         ),
                       ),
                     ),
-                  // "Add Image" button
                   GestureDetector(
                     key: const Key('add_image'),
                     onTap: () {
@@ -419,9 +551,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                         context: context,
                         builder: (BuildContext context) {
                           return SafeArea(
-                            // Important for avoiding system UI overlap
                             child: Wrap(
-                              // Use Wrap to prevent overflow
                               children: [
                                 ListTile(
                                   leading:
@@ -429,23 +559,16 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                   title: const Text('Add 360 Image'),
                                   onTap: () {
                                     _addPanoramaImage();
-                                    Navigator.pop(
-                                        context); // Close the bottom sheet
-                                    // _showSnackBar(context, 'Action 1 was chosen.');
-                                    // Perform Action 1
+                                    Navigator.pop(context);
                                   },
                                 ),
                                 ListTile(
-                                  leading:
-                                      const Icon(Icons.remove), // Optional icon
+                                  leading: const Icon(Icons.remove),
                                   title: const Text(
                                       'Merge and add two Panorama images'),
                                   onTap: () {
                                     _addMergedPanoramaImages();
-                                    Navigator.pop(
-                                        context); // Close the bottom sheet
-                                    // _showSnackBar(context, 'Action 2 was chosen.');
-                                    // Perform Action 2
+                                    Navigator.pop(context);
                                   },
                                 ),
                               ],
@@ -453,8 +576,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                           );
                         },
                       );
-
-                      // _addPanoramaImage();
                       setState(() {
                         _selectedIndex = null;
                       });

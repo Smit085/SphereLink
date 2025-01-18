@@ -69,11 +69,13 @@ Future<File?> mergeImages(
     }
     return mergedFile;
   } catch (e) {
-    print('Error merging images: $e');
+    if (kDebugMode) {
+      print('Error merging images: $e');
+    }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          duration: const Duration(milliseconds: 800),
-          content: Text('Error merging images: $e')),
+      const SnackBar(
+          duration: Duration(milliseconds: 800),
+          content: Text('Error merging images')),
     );
     return null;
   }
