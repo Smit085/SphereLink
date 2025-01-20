@@ -4,6 +4,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'package:spherelink/screens/PanoramicWithMarkers.dart';
+
 class MarkerFormData {
   IconData selectedIcon;
   Color selectedIconColor;
@@ -11,7 +13,7 @@ class MarkerFormData {
   String description;
   int nextImageId;
   String? link;
-  File? image;
+  File? bannerImage;
   String selectedAction;
 
   MarkerFormData({
@@ -22,7 +24,7 @@ class MarkerFormData {
     required this.description,
     required this.selectedAction,
     this.link,
-    this.image,
+    this.bannerImage,
   });
 }
 
@@ -30,13 +32,14 @@ class MarkerFormDialog extends StatefulWidget {
   final Function(MarkerFormData) onSave;
   final VoidCallback onCancel;
   final List<String> imageNames;
+  final MarkerData? initialData;
 
-  const MarkerFormDialog({
-    super.key,
-    required this.onSave,
-    required this.onCancel,
-    required this.imageNames,
-  });
+  const MarkerFormDialog(
+      {super.key,
+      required this.onSave,
+      required this.onCancel,
+      required this.imageNames,
+      this.initialData});
 
   @override
   State<MarkerFormDialog> createState() => _MarkerFormDialogState();
@@ -50,10 +53,10 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   ];
 
   final _formKey = GlobalKey<FormState>();
-  IconData _selectedIcon = Icons.location_on;
-  late Color _selectedIconColor = Colors.red;
+  late IconData _selectedIcon;
+  late Color _selectedIconColor;
   late String _selectedNextImageName;
-  (String, IconData) _selectedAction = actionOptions[0];
+  late (String, IconData) _selectedAction;
   final _labelController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _linkController = TextEditingController();
@@ -90,8 +93,20 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedNextImageName =
-        widget.imageNames.isNotEmpty ? widget.imageNames.first : '';
+    final initialData = widget.initialData;
+    _selectedIcon = initialData?.selectedIcon ?? Icons.location_on;
+    _selectedIconColor = initialData?.selectedIconColor ?? Colors.red;
+    _selectedNextImageName = initialData?.nextImageId.toString() ?? '';
+    _selectedAction = actionOptions.firstWhere(
+      (action) =>
+          action.$1 == (initialData?.selectedAction ?? actionOptions[0].$1),
+      orElse: () => actionOptions[0],
+    );
+
+    _labelController.text = initialData?.label ?? '';
+    _descriptionController.text = initialData?.description ?? '';
+    _linkController.text = initialData?.link ?? '';
+    _bannerImage = initialData?.bannerImage;
   }
 
   @override
@@ -399,7 +414,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                   link: _linkController.text.isNotEmpty
                       ? _linkController.text
                       : null,
-                  image: _bannerImage,
+                  bannerImage: _bannerImage,
                 ));
                 Navigator.of(context).pop();
               }

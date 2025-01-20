@@ -15,23 +15,23 @@ import '../utils/nipPainter.dart';
 class MarkerData {
   double longitude;
   double latitude;
-  final String label;
-  final String description;
-  final IconData icon;
-  final Color color;
-  final int nextImageId;
-  String action;
+  String label;
+  String description;
+  IconData selectedIcon;
+  Color selectedIconColor;
+  int nextImageId;
+  String selectedAction;
   File? bannerImage;
   String? link;
 
   MarkerData(
       {required this.description,
-      required this.action,
+      required this.selectedAction,
       required this.longitude,
       required this.latitude,
-      required this.color,
+      required this.selectedIconColor,
       this.label = "",
-      this.icon = Icons.location_pin,
+      this.selectedIcon = Icons.location_pin,
       this.nextImageId = 1,
       this.bannerImage,
       this.link});
@@ -75,20 +75,50 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
             panoramaImages[currentImageId].markers.add(
                   MarkerData(
                     link: data.link,
-                    bannerImage: data.image,
+                    bannerImage: data.bannerImage,
                     longitude: longitude,
                     latitude: latitude,
                     label: data.label,
-                    icon: data.selectedIcon,
+                    selectedIcon: data.selectedIcon,
                     nextImageId: data.nextImageId,
-                    color: data.selectedIconColor,
-                    action: data.selectedAction,
+                    selectedIconColor: data.selectedIconColor,
+                    selectedAction: data.selectedAction,
                     description: data.description,
                   ),
                 );
             print("Marker Added");
           }),
           onCancel: () => Navigator.of(context).pop(),
+        );
+      },
+    );
+  }
+
+  void _onEditMarker(MarkerData markerData) {
+    List<String> imageNames =
+        panoramaImages.map((image) => image.imageName).toList();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return MarkerFormDialog(
+          initialData: markerData,
+          imageNames: imageNames,
+          onSave: (updatedMarkerData) {
+            setState(() {
+              selectedMarker?.selectedAction = updatedMarkerData.selectedAction;
+              selectedMarker?.selectedIcon = updatedMarkerData.selectedIcon;
+              selectedMarker?.selectedIconColor =
+                  updatedMarkerData.selectedIconColor;
+              selectedMarker?.label = updatedMarkerData.label;
+              selectedMarker?.description = updatedMarkerData.description;
+              selectedMarker?.nextImageId = updatedMarkerData.nextImageId;
+              selectedMarker?.link = updatedMarkerData.link;
+              selectedMarker?.bannerImage = updatedMarkerData.bannerImage;
+            });
+          },
+          onCancel: () {
+            Navigator.of(context).pop();
+          },
         );
       },
     );
@@ -219,7 +249,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   widget: IconButton(
                     onPressed: () {
                       print("Btn Pressed");
-                      switch (marker.action) {
+                      switch (marker.selectedAction) {
                         case "Navigation":
                           setState(() {
                             currentImageId = marker.nextImageId - 1;
@@ -230,7 +260,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                           _showMarkerLabel(marker);
                       }
                     },
-                    icon: Icon(marker.icon, color: marker.color),
+                    icon: Icon(marker.selectedIcon,
+                        color: marker.selectedIconColor),
                     iconSize: 35,
                   ),
                 );
@@ -306,7 +337,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                           child: SingleChildScrollView(
                               child: Stack(
                             children: [
-                              // Your main content (e.g., Column with selectedMarker data)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
@@ -372,24 +402,21 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     top: 0,
                     child: Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
+                        GestureDetector(
+                          onTap: () {
+                            _onEditMarker(selectedMarker!);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.blue,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black
-                                      .withOpacity(0.3), // Shadow color
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                  offset: const Offset(4, 4),
-                                ),
-                              ]),
-                          padding: const EdgeInsets.all(4),
-                          child: const Icon(
-                            Icons.edit,
-                            size: 20,
-                            color: Colors.white,
+                              color: Colors.blue.withOpacity(0.7),
+                            ),
+                            padding: const EdgeInsets.all(4),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 20,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         const SizedBox(
