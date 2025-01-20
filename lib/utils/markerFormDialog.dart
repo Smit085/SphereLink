@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class MarkerFormData {
   IconData selectedIcon;
+  Color selectedIconColor;
   String label;
   String description;
   int nextImageId;
   String? link;
-  Color iconColor;
   File? image;
   String selectedAction;
 
   MarkerFormData({
     required this.selectedIcon,
+    required this.selectedIconColor,
     required this.label,
     required this.nextImageId,
     required this.description,
-    required this.iconColor,
     required this.selectedAction,
     this.link,
     this.image,
@@ -50,8 +51,8 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
 
   final _formKey = GlobalKey<FormState>();
   IconData _selectedIcon = Icons.location_on;
+  late Color _selectedIconColor = Colors.red;
   late String _selectedNextImageName;
-  Color _iconColor = Colors.red;
   (String, IconData) _selectedAction = actionOptions[0];
   final _labelController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -64,8 +65,14 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     "location": (icon: Icons.location_on, color: Colors.red),
     "adjust": (icon: Icons.adjust, color: Colors.white),
     "arrowUp": (icon: Icons.arrow_circle_up_outlined, color: Colors.white10),
-    "arrowdown": (icon: Icons.arrow_circle_down_outlined, color: Colors.white10),
-    "assistantright": (icon: Icons.assistant_direction_outlined, color: Colors.white10),
+    "arrowdown": (
+      icon: Icons.arrow_circle_down_outlined,
+      color: Colors.white10
+    ),
+    "assistantright": (
+      icon: Icons.assistant_direction_outlined,
+      color: Colors.white10
+    ),
     "flag": (icon: Icons.flag, color: Colors.white10),
     "danger": (icon: Icons.dangerous, color: Colors.blue),
     "block": (icon: Icons.block, color: Colors.red),
@@ -120,6 +127,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
+        enableSuggestions: true,
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
@@ -225,7 +233,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
               controller: _descriptionController,
               maxLength: 150,
               validator: (value) =>
-              value?.isEmpty ?? true ? "Description is required" : null,
+                  value?.isEmpty ?? true ? "Description is required" : null,
             ),
             _buildTextField(
               label: "Link",
@@ -310,6 +318,40 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const Spacer(),
+                        IconButton(
+                            onPressed: () {
+                              showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Pick a color!'),
+                                      content: SingleChildScrollView(
+                                        child: ColorPicker(
+                                          pickerColor:
+                                              _selectedIconColor, //default color
+                                          onColorChanged: (Color color) {
+                                            setState(() {
+                                              _selectedIconColor = color;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      actions: <Widget>[
+                                        ElevatedButton(
+                                          child: const Text('DONE'),
+                                          onPressed: () {
+                                            Navigator.of(context)
+                                                .pop(); //dismiss the color picker
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  });
+                            },
+                            icon: Icon(
+                              Icons.color_lens,
+                              color: _selectedIconColor,
+                            )),
                         SizedBox(
                             width: 70,
                             child: DropdownButtonFormField<IconData>(
@@ -318,29 +360,21 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                                   contentPadding: EdgeInsets.zero),
                               items: markerOptions.entries.map((marker) {
                                 final icon = marker.value.icon;
-                                final color = marker.value.color;
                                 return DropdownMenuItem(
                                   value: icon,
-                                  child: Icon(icon, color: color),
+                                  child: Icon(icon, color: _selectedIconColor),
                                 );
                               }).toList(),
                               onChanged: (newIcon) {
                                 if (newIcon != null) {
                                   setState(() {
                                     _selectedIcon = newIcon;
-                                    // Find the corresponding color
-                                    _iconColor = markerOptions.entries
-                                        .firstWhere((entry) =>
-                                            entry.value.icon == newIcon)
-                                        .value
-                                        .color;
                                   });
                                 }
                               },
-                            ))
+                            )),
                       ],
                     ),
-                    const SizedBox(height: 12),
                     _buildDynamicInputs(),
                   ],
                 ),
@@ -357,10 +391,11 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                 widget.onSave(MarkerFormData(
                   selectedAction: _selectedAction.$1,
                   selectedIcon: _selectedIcon,
-                  iconColor: _iconColor,
+                  selectedIconColor: _selectedIconColor,
                   label: _labelController.text,
                   description: _descriptionController.text,
-                  nextImageId: widget.imageNames.indexOf(_selectedNextImageName),
+                  nextImageId:
+                      widget.imageNames.indexOf(_selectedNextImageName),
                   link: _linkController.text.isNotEmpty
                       ? _linkController.text
                       : null,

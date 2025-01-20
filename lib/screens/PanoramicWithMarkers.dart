@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:spherelink/utils/mergeImages.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/markerFormDialog.dart';
 import '../utils/nipPainter.dart';
@@ -21,18 +22,19 @@ class MarkerData {
   final int nextImageId;
   String action;
   File? bannerImage;
+  String? link;
 
-  MarkerData({
-    required this.description,
-    required this.action,
-    required this.longitude,
-    required this.latitude,
-    required this.color,
-    this.label = "",
-    this.icon = Icons.location_pin,
-    this.nextImageId = -1,
-    this.bannerImage
-  });
+  MarkerData(
+      {required this.description,
+      required this.action,
+      required this.longitude,
+      required this.latitude,
+      required this.color,
+      this.label = "",
+      this.icon = Icons.location_pin,
+      this.nextImageId = 1,
+      this.bannerImage,
+      this.link});
 }
 
 class PanoramaImage {
@@ -72,26 +74,17 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           onSave: (data) => setState(() {
             panoramaImages[currentImageId].markers.add(
                   MarkerData(
+                    link: data.link,
+                    bannerImage: data.image,
                     longitude: longitude,
                     latitude: latitude,
                     label: data.label,
                     icon: data.selectedIcon,
                     nextImageId: data.nextImageId,
-                    color: data.iconColor,
+                    color: data.selectedIconColor,
                     action: data.selectedAction,
                     description: data.description,
                   ),
-                  // MarkerData(
-                  //     longitude: longitude,
-                  //     latitude: latitude,
-                  //     name: data.label,
-                  //     widget: IconButton(onPressed: () {
-                  //       setState(() {
-                  //         currentImageId = data.nextImageId - 1;
-                  //       });
-                  //       print(currentImageId);
-                  //       print("Btn Pressed");
-                  //     }, icon: Icon(data.selectedIcon),iconSize: 43,))
                 );
             print("Marker Added");
           }),
@@ -103,11 +96,11 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
 
   void _showMarkerLabel(MarkerData marker) {
     setState(() {
-      selectedMarker = marker; // Update selected marker
+      selectedMarker = marker;
     });
     Future.delayed(const Duration(seconds: 20), () {
       setState(() {
-        selectedMarker = null; // Hide balloon after a delay
+        selectedMarker = null;
       });
     });
   }
@@ -311,57 +304,143 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                             maxHeight: MediaQuery.of(context).size.height / 2,
                           ),
                           child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(2),
-                                  child: SizedBox(
-                                    height: 100,
-                                    child: selectedMarker?.bannerImage != null
-                                        ? Image.file(
-                                      selectedMarker!.bannerImage!,
-                                      fit: BoxFit.cover,
-                                    )
-                                        : Container( // Placeholder widget
-                                      color: Colors.grey[200],
-                                      child: const Center(child: Icon(Icons.image, color: Colors.grey)),
+                              child: Stack(
+                            children: [
+                              // Your main content (e.g., Column with selectedMarker data)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (selectedMarker?.bannerImage != null)
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(2),
+                                      child: SizedBox(
+                                        height: 100,
+                                        child: selectedMarker?.bannerImage !=
+                                                null
+                                            ? Image.file(
+                                                selectedMarker!.bannerImage!,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Container(
+                                                // Placeholder widget
+                                                color: Colors.grey[200],
+                                                child: const Center(
+                                                    child: Icon(Icons.image,
+                                                        color: Colors.grey)),
+                                              ),
+                                      ),
                                     ),
+                                  const SizedBox(
+                                    height: 15,
                                   ),
-                                ),
-                                Flexible(
-                                  child: Text(
-                                    selectedMarker!.label,
-                                    style: GoogleFonts.tinos(
-                                      height: 1.2,
-                                      color: Colors.black,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ).copyWith(
-                                        color: Colors.black.withAlpha(160)),
-                                    softWrap: true,
-                                  ),
-                                ),
-                                if (selectedMarker?.description != "")
-                                  const Divider(
-                                    height: 2,
-                                    color: Colors.black12,
-                                  ),
-                                if (selectedMarker?.description != "")
                                   Flexible(
                                     child: Text(
-                                      selectedMarker!.description,
-                                      style: GoogleFonts.abhayaLibre(
-                                          color: Colors.black87, height: 1.2),
+                                      selectedMarker!.label,
+                                      style: GoogleFonts.tinos(
+                                        height: 1.2,
+                                        color: Colors.black,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ).copyWith(
+                                          color: Colors.black.withAlpha(160)),
                                       softWrap: true,
                                     ),
                                   ),
-                              ],
-                            ),
-                          ),
+                                  if (selectedMarker?.description != "")
+                                    const Divider(
+                                        height: 2, color: Colors.black12),
+                                  if (selectedMarker?.description != "")
+                                    Flexible(
+                                      child: Text(
+                                        selectedMarker!.description,
+                                        style: GoogleFonts.abhayaLibre(
+                                            color: Colors.black87, height: 1.2),
+                                        softWrap: true,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          )),
                         ),
                       ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.blue,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black
+                                      .withOpacity(0.3), // Shadow color
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                  offset: const Offset(4, 4),
+                                ),
+                              ]),
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 35,
+                          width: 5,
+                        ),
+                        if (selectedMarker?.link?.isNotEmpty ?? false)
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.blue,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black
+                                      .withOpacity(0.3), // Shadow color
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                  offset: const Offset(4, 4),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(4),
+                            child: GestureDetector(
+                              onTap: () async {
+                                final url = selectedMarker?.link;
+                                final encodedUrl = Uri.encodeFull(
+                                    url!); // Keeping the encoding
+                                final Uri uri = Uri.parse(encodedUrl);
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      duration:
+                                          const Duration(milliseconds: 900),
+                                      content: Text("Incorrect url: \"$url\""),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Icon(
+                                Icons.link_sharp,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(
+                          width: 5,
+                        )
+                      ],
                     ),
                   ),
                 ],
