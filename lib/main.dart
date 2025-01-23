@@ -1,8 +1,10 @@
 import 'package:flutter/services.dart';
+import 'package:spherelink/screens/MainScreen.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
+import 'package:spherelink/utils/appColors.dart';
 
 void main() {
   final ImagePickerPlatform imagePickerImplementation =
@@ -16,12 +18,14 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Marker App',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: PanoramicWithMarkers(),
+      home: const MainScreen(),
+      theme: ThemeData(
+        appBarTheme: const AppBarTheme(),
+      ),
     );
   }
 }
