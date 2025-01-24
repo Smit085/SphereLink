@@ -1,14 +1,16 @@
 import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'package:balloon_widget/balloon_widget.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:spherelink/utils/mergeImages.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/appColors.dart';
 import '../utils/markerFormDialog.dart';
 import '../utils/nipPainter.dart';
 
@@ -30,9 +32,9 @@ class MarkerData {
       required this.longitude,
       required this.latitude,
       required this.selectedIconColor,
+      required this.nextImageId,
       this.label = "",
       this.selectedIcon = Icons.location_pin,
-      this.nextImageId = 1,
       this.bannerImage,
       this.link});
 }
@@ -63,6 +65,21 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   final List<PanoramaImage> panoramaImages = [];
   final ImagePicker _imagePicker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations(
+        [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
   void _addMarker(double longitude, double latitude) {
     showDialog(
       context: context,
@@ -70,6 +87,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
         List<String> imageNames =
             panoramaImages.map((image) => image.imageName).toList();
         return MarkerFormDialog(
+          title: "Add",
           imageNames: imageNames,
           onSave: (data) => setState(() {
             panoramaImages[currentImageId].markers.add(
@@ -101,6 +119,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       context: context,
       builder: (context) {
         return MarkerFormDialog(
+          title: "Edit",
           initialData: markerData,
           imageNames: imageNames,
           onSave: (updatedMarkerData) {
@@ -139,6 +158,36 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     setState(() {
       panoramaImages[currentImageId].markers.remove(marker);
     });
+  }
+
+  void _showBottomSheetForImage() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.add), // Optional icon
+                title: const Text('Add 360 Image'),
+                onTap: () {
+                  _addPanoramaImage();
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.remove),
+                title: const Text('Merge and add two Panorama images'),
+                onTap: () {
+                  _addMergedPanoramaImages();
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _addPanoramaImage() async {
@@ -234,7 +283,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     final currentMarkers = currentImage?.markers ?? [];
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.appprimaryBackgroundColor,
       body: Stack(
         children: [
           if (panoramaImages.isNotEmpty)
@@ -248,15 +298,21 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   name: marker.label,
                   widget: IconButton(
                     onPressed: () {
-                      print("Btn Pressed");
                       switch (marker.selectedAction) {
                         case "Navigation":
                           setState(() {
-                            currentImageId = marker.nextImageId - 1;
+                            _selectedIndex = null;
+                            currentImageId = marker.nextImageId;
                           });
                         case "Label":
+                          setState(() {
+                            _selectedIndex = null;
+                          });
                           _showMarkerLabel(marker);
                         case "Banner":
+                          setState(() {
+                            _selectedIndex = null;
+                          });
                           _showMarkerLabel(marker);
                       }
                     },
@@ -282,16 +338,54 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
               },
             )
           else
-            const Center(
-                child: Center(
-              child: Text(
-                "No images added. Use the '+' button to add images.",
-                style: TextStyle(color: Colors.black, fontSize: 16),
+            Center(
+              heightFactor: 1.5,
+              child: GestureDetector(
+                onTap: () {
+                  _showBottomSheetForImage();
+                  setState(() {
+                    _selectedIndex = null;
+                  });
+                },
+                child: DottedBorder(
+                  borderType: BorderType.RRect,
+                  dashPattern: const [12, 4],
+                  strokeWidth: 2,
+                  color: Colors.grey,
+                  radius: const Radius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    width: 300,
+                    height: 200,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate,
+                          size: 80,
+                          color: Colors.grey[700],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          textAlign: TextAlign.center,
+                          "Add image in the slider to get started.",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            )),
+            ),
           if (selectedMarker != null)
             Positioned(
-              left: MediaQuery.of(context).size.width / 1.40,
+              left: MediaQuery.of(context).orientation == Orientation.landscape
+                  ? MediaQuery.of(context).size.width / 1.40
+                  : MediaQuery.of(context).size.width / .40,
               top: MediaQuery.of(context).size.height / 25,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -427,7 +521,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                           Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.blue,
+                              color: Colors.green.withOpacity(0.7),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black
@@ -515,14 +609,31 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                         padding: const EdgeInsets.all(8.0),
                         child: Stack(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: SizedBox(
-                                width: 150,
-                                height: 100,
-                                child: Image.file(
-                                  panoramaImages[index].image,
-                                  fit: BoxFit.cover,
+                            Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: _selectedIndex == index
+                                      ? Colors.blue
+                                      : Colors.transparent,
+                                  width: _selectedIndex == index ? 2.0 : 0.0,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: SizedBox(
+                                  width: 150,
+                                  height: 100,
+                                  child: Image.file(
+                                    frameBuilder: (context, child, frame,
+                                        wasSynchronouslyLoaded) {
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    },
+                                    panoramaImages[index].image,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ),
@@ -653,35 +764,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   GestureDetector(
                     key: const Key('add_image'),
                     onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return SafeArea(
-                            child: Wrap(
-                              children: [
-                                ListTile(
-                                  leading:
-                                      const Icon(Icons.add), // Optional icon
-                                  title: const Text('Add 360 Image'),
-                                  onTap: () {
-                                    _addPanoramaImage();
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.remove),
-                                  title: const Text(
-                                      'Merge and add two Panorama images'),
-                                  onTap: () {
-                                    _addMergedPanoramaImages();
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
+                      _showBottomSheetForImage();
                       setState(() {
                         _selectedIndex = null;
                       });
