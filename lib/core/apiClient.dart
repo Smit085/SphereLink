@@ -20,18 +20,39 @@ class ApiService {
     }
   }
 
-  Future<String> lo() async {
+  Future<String> validateUser(String email, String password) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/test'));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/login'),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, String>{
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 10)); // Add a timeout
 
       if (response.statusCode == 200) {
-        print("Sucess");
-        return json.decode(response.body);
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        print(response.body);
+        if (responseData.containsKey('message') &&
+            responseData['message'] == 'Login successful') {
+          return 'Login successful';
+        }
+        return 'Login unsuccessful';
+      } else if (response.statusCode == 401) {
+        return 'Invalid password.';
       } else {
-        throw Exception('Failed to load test data');
+        print('API Error: ${response.statusCode}');
+        print('API Response Body: ${response.body}');
+        return 'Login unsuccessful';
       }
     } catch (e) {
-      throw Exception('Error: $e');
+      print('Error during API call: $e');
+      return 'Login unsuccessful';
     }
   }
 }
