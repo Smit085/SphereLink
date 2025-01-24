@@ -7,9 +7,12 @@ import 'package:spherelink/screens/HomeScreen.dart';
 import 'package:spherelink/screens/ProfileScreen.dart';
 import '../utils/appColors.dart';
 import '../widget/BadgeNotificationIcon.dart';
+import '../widget/customSnackbar.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  final String? snackBarMessage;
+
+  const MainScreen({Key? key, required this.snackBarMessage}) : super(key: key);
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -28,6 +31,9 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    // if (widget.snackBarMessage != null) {
+
+    // }
   }
 
   Future<void> _openAppInfo() async {
@@ -37,92 +43,6 @@ class _MainScreenState extends State<MainScreen> {
       data: 'package:com.example.spherelink',
     );
     await intent.launch();
-  }
-
-  void _showCustomSnackBar() {
-    final overlay = Overlay.of(context);
-
-    ValueNotifier<double> scale = ValueNotifier<double>(0.95);
-    ValueNotifier<double> opacity = ValueNotifier<double>(1.0);
-
-    final snackBarOverlay = OverlayEntry(
-      builder: (context) {
-        return Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
-          child: ValueListenableBuilder<double>(
-            valueListenable: scale,
-            builder: (context, scaleValue, child) {
-              return ValueListenableBuilder<double>(
-                valueListenable: opacity,
-                builder: (context, opacityValue, child) {
-                  return AnimatedScale(
-                    scale: scaleValue,
-                    curve: Curves.linearToEaseOut,
-                    duration: const Duration(milliseconds: 150),
-                    child: AnimatedOpacity(
-                      opacity: opacityValue,
-                      duration: const Duration(milliseconds: 125),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: AppColors.textColorPrimary,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'App permission denied.',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              TextButton(
-                                style: ButtonStyle(
-                                  overlayColor: MaterialStateProperty.all(
-                                      Colors.transparent),
-                                ),
-                                onPressed: _openAppInfo,
-                                child: const Text(
-                                  "Settings",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        );
-      },
-    );
-
-    overlay.insert(snackBarOverlay);
-
-    // Trigger the scale animation.
-    Future.delayed(const Duration(milliseconds: 50), () {
-      scale.value = 1.0;
-    });
-
-    // Trigger the fade-out animation before removal.
-    Future.delayed(const Duration(seconds: 2), () {
-      opacity.value = 0.0;
-    });
-
-    // Remove the snackbar from the overlay after fade-out completes.
-    Future.delayed(const Duration(seconds: 2, milliseconds: 500), () {
-      snackBarOverlay.remove();
-    });
   }
 
   Future<void> _fetchLocation() async {
@@ -158,7 +78,8 @@ class _MainScreenState extends State<MainScreen> {
         setState(() {
           _currentLocation = "Location Permission denied.";
         });
-        _showCustomSnackBar();
+        showCustomSnackBar(context, AppColors.textColorPrimary,
+            "App permission denied.", "Settings", _openAppInfo);
         return;
       }
 
@@ -188,42 +109,44 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        titleSpacing: 0,
-        toolbarHeight: 60,
-        backgroundColor: AppColors.appprimaryColor,
-        actions: [
-          const BadgeNotificationIcon(
-            icon: Icons.notifications,
-            notificationCount: 1,
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: GestureDetector(
-              onTap: () {
-                // Handle profile button tap
-              },
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: const AssetImage("assets/profile_1.jpeg"),
+    return ScaffoldMessenger(
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          titleSpacing: 0,
+          toolbarHeight: 60,
+          backgroundColor: AppColors.appprimaryColor,
+          actions: [
+            const BadgeNotificationIcon(
+              icon: Icons.notifications,
+              notificationCount: 1,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GestureDetector(
+                onTap: () {
+                  // Handle profile button tap
+                },
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: const AssetImage("assets/profile_1.jpeg"),
+                ),
               ),
             ),
+          ],
+          title: _AppBarTitle(
+            location: _currentLocation,
+            onRefresh: _fetchLocation,
           ),
-        ],
-        title: _AppBarTitle(
-          location: _currentLocation,
-          onRefresh: _fetchLocation,
         ),
+        backgroundColor: AppColors.appprimaryColor,
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _widgetOptions,
+        ),
+        bottomNavigationBar: _buildBottomNavigationBar(),
       ),
-      backgroundColor: AppColors.appprimaryColor,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _widgetOptions,
-      ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
