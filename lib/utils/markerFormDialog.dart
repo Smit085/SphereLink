@@ -33,9 +33,11 @@ class MarkerFormDialog extends StatefulWidget {
   final VoidCallback onCancel;
   final List<String> imageNames;
   final MarkerData? initialData;
+  final String title;
 
   const MarkerFormDialog(
       {super.key,
+      required this.title,
       required this.onSave,
       required this.onCancel,
       required this.imageNames,
@@ -55,7 +57,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late IconData _selectedIcon;
   late Color _selectedIconColor;
-  late String _selectedNextImageName;
+  late String? _selectedNextImageName;
   late (String, IconData) _selectedAction;
   final _labelController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -213,7 +215,9 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
             labelText: "Next Image",
             border: OutlineInputBorder(),
           ),
-          value: _selectedNextImageName,
+          value: widget.imageNames.contains(_selectedNextImageName)
+              ? _selectedNextImageName
+              : null,
           onChanged: (newValue) {
             setState(() {
               _selectedNextImageName = newValue!;
@@ -267,10 +271,10 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     return SingleChildScrollView(
       child: AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        title: const Center(
+        title: Center(
           child: Text(
-            "Add Marker",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            "${widget.title} Marker",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
         ),
         content: ConstrainedBox(
@@ -410,7 +414,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                   label: _labelController.text,
                   description: _descriptionController.text,
                   nextImageId:
-                      widget.imageNames.indexOf(_selectedNextImageName),
+                      widget.imageNames.indexOf(_selectedNextImageName!),
                   link: _linkController.text.isNotEmpty
                       ? _linkController.text
                       : null,
