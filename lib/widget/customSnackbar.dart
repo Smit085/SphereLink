@@ -49,20 +49,19 @@ void showCustomSnackBar(
                               message!,
                               style: const TextStyle(color: Colors.black),
                             ),
-                            if (btnText != null)
-                              TextButton(
-                                style: ButtonStyle(
-                                  overlayColor: WidgetStateProperty.all(
-                                      Colors.transparent),
-                                ),
-                                onPressed: onTap,
-                                child: Text(
-                                  btnText,
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                            TextButton(
+                              style: ButtonStyle(
+                                overlayColor:
+                                    WidgetStateProperty.all(Colors.transparent),
                               ),
+                              onPressed: onTap,
+                              child: Text(
+                                btnText,
+                                style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ],
                         ),
                       ),
