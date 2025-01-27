@@ -600,11 +600,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                           _selectedIndex = index;
                         });
                       },
-                      // onLongPress: () {
-                      //   setState(() {
-                      //     _selectedIndex = index;
-                      //   });
-                      // },
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Stack(
@@ -625,12 +620,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                   width: 150,
                                   height: 100,
                                   child: Image.file(
-                                    frameBuilder: (context, child, frame,
-                                        wasSynchronouslyLoaded) {
-                                      return const Center(
-                                        child: CircularProgressIndicator(),
-                                      );
-                                    },
                                     panoramaImages[index].image,
                                     fit: BoxFit.cover,
                                   ),
