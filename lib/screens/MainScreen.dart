@@ -10,9 +10,7 @@ import '../widget/BadgeNotificationIcon.dart';
 import '../widget/customSnackbar.dart';
 
 class MainScreen extends StatefulWidget {
-  final String? snackBarMessage;
-
-  const MainScreen({Key? key, required this.snackBarMessage}) : super(key: key);
+  const MainScreen({Key? key}) : super(key: key);
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -27,14 +25,6 @@ class _MainScreenState extends State<MainScreen> {
     const ExploreScreen(),
     const ProfileScreen(),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    // if (widget.snackBarMessage != null) {
-
-    // }
-  }
 
   Future<void> _openAppInfo() async {
     const intent = AndroidIntent(
