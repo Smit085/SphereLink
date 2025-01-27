@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // final String baseUrl = "http://localhost:8080/api";
   final String baseUrl = "http://192.168.235.87:8080/api/v1";
 
   Future<String> testBackend() async {
@@ -10,7 +9,7 @@ class ApiService {
       final response = await http.get(Uri.parse('$baseUrl/test'));
 
       if (response.statusCode == 200) {
-        print("Sucess");
+        print("Success");
         return json.decode(response.body);
       } else {
         throw Exception('Failed to load test data');
@@ -22,18 +21,13 @@ class ApiService {
 
   Future<String?> validateUser(String email, String password) async {
     try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/login'),
-            headers: <String, String>{
-              'Content-Type': 'application/json; charset=UTF-8',
-            },
-            body: jsonEncode(<String, String>{
-              'email': email,
-              'password': password,
-            }),
-          )
-          .timeout(const Duration(seconds: 10)); // Add a timeout
+      final response = await http.get(
+        Uri.parse('$baseUrl/login')
+            .replace(queryParameters: {'email': email, 'password': password}),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      ).timeout(const Duration(seconds: 10)); // Add a timeout
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
@@ -85,6 +79,33 @@ class ApiService {
         return 'Signup unsuccessful';
       } else if (response.statusCode == 409) {
         return 'User exists';
+      } else {
+        print('API Error: ${response.statusCode}');
+        print('API Response Body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error during API call: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUser(String email) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user').replace(queryParameters: {'email': email}),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      ).timeout(const Duration(seconds: 10)); // Add a timeout
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        print('User Data: $responseData');
+        return responseData;
+      } else if (response.statusCode == 404) {
+        print('User not found');
+        return null;
       } else {
         print('API Error: ${response.statusCode}');
         print('API Response Body: ${response.body}');
