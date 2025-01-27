@@ -20,7 +20,7 @@ class ApiService {
     }
   }
 
-  Future<String> validateUser(String email, String password) async {
+  Future<String?> validateUser(String email, String password) async {
     try {
       final response = await http
           .post(
@@ -48,11 +48,51 @@ class ApiService {
       } else {
         print('API Error: ${response.statusCode}');
         print('API Response Body: ${response.body}');
-        return 'Login unsuccessful';
+        return null;
       }
     } catch (e) {
       print('Error during API call: $e');
-      return 'Login unsuccessful';
+      return null;
+    }
+  }
+
+  Future<String?> signUpUser(String firstName, String lastName,
+      String phoneNumber, String email, String password) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/signup'),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, String>{
+              'firstName': firstName,
+              'lastName': lastName,
+              'phoneNumber': phoneNumber,
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 10)); // Add a timeout
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        print(response.body);
+        if (responseData.containsKey('message') &&
+            responseData['message'] == 'Signup successful') {
+          return 'Signup successful';
+        }
+        return 'Signup unsuccessful';
+      } else if (response.statusCode == 409) {
+        return 'User exists';
+      } else {
+        print('API Error: ${response.statusCode}');
+        print('API Response Body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error during API call: $e');
+      return null;
     }
   }
 }
