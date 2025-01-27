@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:spherelink/core/session.dart';
 import 'package:spherelink/utils/appColors.dart';
 import '../widget/customSnackbar.dart';
 import 'MainScreen.dart';
@@ -114,6 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
 
                             if (response == 'Login successful') {
+                              final response = await ApiService()
+                                  .getUser(_emailController.text);
+                              Session().saveSession(
+                                  "${response?['firstName']} ${response?['lastName']}");
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 showCustomSnackBar(
                                     context,

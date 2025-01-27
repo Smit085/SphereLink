@@ -4,6 +4,7 @@ import 'package:spherelink/screens/MainScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
+import 'package:spherelink/screens/SplashScreen.dart';
 
 void main() {
   final ImagePickerPlatform imagePickerImplementation =
@@ -21,47 +22,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Marker App',
-      home: const LoginScreen(),
+      home: const SplashScreen(),
       theme: ThemeData(
         appBarTheme: const AppBarTheme(),
       ),
     );
   }
 }
-
-//
-// class MyHomePage extends StatefulWidget {
-//   MyHomePage({Key? key, required this.title}) : super(key: key);
-//
-//   final String title;
-//
-//   @override
-//   _MyHomePageState createState() => _MyHomePageState();
-// }
-//
-// class _MyHomePageState extends State<MyHomePage> {
-//   void _showMarkerForm(BuildContext context) {
-//     showDialog(
-//       context: context,
-//       builder: (BuildContext context) {
-//         return MarkerFormDialog(
-//           onSave: (data) => print('Data saved: $data'),
-//           onCancel: () => Navigator.of(context).pop(),
-//         );
-//       },
-//     );
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: Text(widget.title)),
-//       body: Center(
-//         child: ElevatedButton(
-//           onPressed: () => _showMarkerForm(context),
-//           child: Text('Open Marker Form'),
-//         ),
-//       ),
-//     );
-//   }
-// }

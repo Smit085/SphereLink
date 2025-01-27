@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:spherelink/screens/ExploreScreen.dart';
 import 'package:spherelink/screens/HomeScreen.dart';
 import 'package:spherelink/screens/ProfileScreen.dart';
+import '../core/session.dart';
 import '../utils/appColors.dart';
 import '../widget/BadgeNotificationIcon.dart';
 import '../widget/customSnackbar.dart';
@@ -243,9 +244,15 @@ class _AppBarTitle extends StatelessWidget {
   final String location;
   final VoidCallback onRefresh;
 
-  const _AppBarTitle(
-      {Key? key, required this.location, required this.onRefresh})
-      : super(key: key);
+  const _AppBarTitle({
+    Key? key,
+    required this.location,
+    required this.onRefresh,
+  }) : super(key: key);
+
+  Future<String> _fetchUsername() async {
+    return await Session().getSession() ?? "Guest User";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -256,25 +263,40 @@ class _AppBarTitle extends StatelessWidget {
           icon: const Icon(Icons.my_location_outlined, color: Colors.white),
         ),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Smit Patel",
-                style: TextStyle(color: Colors.white, fontSize: 14),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                location,
-                style: TextStyle(
-                  color: location == "Unable to fetch location"
-                      ? Colors.red[300]
-                      : Colors.white70,
-                  fontSize: 12,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+          child: FutureBuilder<String>(
+            future: _fetchUsername(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator(); // Optional: Loading indicator
+              } else if (snapshot.hasError) {
+                return const Text(
+                  "Error fetching username",
+                  style: TextStyle(color: Colors.red, fontSize: 14),
+                );
+              } else {
+                String username = snapshot.data ?? "Guest User";
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      username,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      location,
+                      style: TextStyle(
+                        color: location == "Unable to fetch location"
+                            ? Colors.red[300]
+                            : Colors.white70,
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                );
+              }
+            },
           ),
         ),
       ],
