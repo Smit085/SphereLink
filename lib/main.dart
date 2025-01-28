@@ -1,9 +1,12 @@
 import 'package:flutter/services.dart';
+import 'package:spherelink/screens/HomeScreen.dart';
 import 'package:spherelink/screens/LoginScreen.dart';
 import 'package:spherelink/screens/MainScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
+import 'package:spherelink/screens/PanoramaView.dart';
+import 'package:spherelink/screens/PanoramicWithMarkers.dart';
 import 'package:spherelink/screens/SplashScreen.dart';
 
 void main() {
@@ -22,7 +25,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Marker App',
-      home: const SplashScreen(),
+      home: const MainScreen(),
       theme: ThemeData(
         appBarTheme: const AppBarTheme(),
       ),

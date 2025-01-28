@@ -4,7 +4,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import 'package:spherelink/screens/PanoramicWithMarkers.dart';
+import '../data/MarkerData.dart';
 
 class MarkerFormData {
   IconData selectedIcon;

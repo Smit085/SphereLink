@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
@@ -7,45 +8,16 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:spherelink/utils/mergeImages.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/MarkerData.dart';
+import '../data/PanoramaImage.dart';
+import '../data/ViewData.dart';
 import '../utils/appColors.dart';
 import '../utils/markerFormDialog.dart';
 import '../utils/nipPainter.dart';
-
-class MarkerData {
-  double longitude;
-  double latitude;
-  String label;
-  String description;
-  IconData selectedIcon;
-  Color selectedIconColor;
-  int nextImageId;
-  String selectedAction;
-  File? bannerImage;
-  String? link;
-
-  MarkerData(
-      {required this.description,
-      required this.selectedAction,
-      required this.longitude,
-      required this.latitude,
-      required this.selectedIconColor,
-      required this.nextImageId,
-      this.label = "",
-      this.selectedIcon = Icons.location_pin,
-      this.bannerImage,
-      this.link});
-}
-
-class PanoramaImage {
-  final File image;
-  String imageName;
-  final List<MarkerData> markers;
-
-  PanoramaImage(this.image, this.imageName) : markers = [];
-}
 
 class PanoramicWithMarkers extends StatefulWidget {
   const PanoramicWithMarkers({Key? key}) : super(key: key);
@@ -61,16 +33,18 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   double currentLongitude = 0.0;
   double currentLatitude = 0.0;
   int currentImageId = 0;
+  bool _isLoading = false;
 
-  final List<PanoramaImage> panoramaImages = [];
+  late List<PanoramaImage> panoramaImages = [];
   final ImagePicker _imagePicker = ImagePicker();
+
+  List<ViewData> savedViews = [];
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations(
         [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   @override
@@ -78,6 +52,78 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  Future<void> _saveView(String viewName) async {
+    if (panoramaImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No panorama images to save")),
+      );
+      return;
+    }
+
+    final directory = await getApplicationDocumentsDirectory();
+    final viewsDir = Directory('${directory.path}/views');
+    if (!await viewsDir.exists()) {
+      await viewsDir.create(recursive: true);
+    }
+
+    // Create a new view object
+    final newView = ViewData(
+      panoramaImages: panoramaImages,
+      viewName: viewName,
+      thumbnailImage: panoramaImages.first.image,
+      dateTime: DateTime.now(),
+    );
+
+    // Save the view data to a JSON file
+    final jsonPath = '${viewsDir.path}/$viewName.json';
+    final file = File(jsonPath);
+    await file.writeAsString(jsonEncode(newView.toJson()));
+
+    // Update UI
+    setState(() {
+      savedViews.add(newView);
+      panoramaImages = [];
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _showSaveDialog() async {
+    final TextEditingController nameController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Save Panorama View"),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(hintText: "Enter view name"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final viewName = nameController.text.trim();
+                if (viewName.isNotEmpty) {
+                  _saveView(viewName);
+                  Navigator.of(context).pop();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("View name cannot be empty")),
+                  );
+                }
+              },
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _addMarker(double longitude, double latitude) {
@@ -278,6 +324,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     final currentImage =
         panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
     final currentMarkers = currentImage?.markers ?? [];
@@ -379,6 +426,45 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     ),
                   ),
                 ),
+              ),
+            ),
+          if (panoramaImages.isNotEmpty)
+            Positioned(
+              bottom: 100,
+              left: 12,
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  _showSaveDialog();
+                },
+                style: ElevatedButton.styleFrom(
+                  fixedSize: const Size(115, 12),
+                  backgroundColor: Colors.lightBlueAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5.0),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 25,
+                        height: 25,
+                        child: CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                          color: Colors.blue,
+                          strokeWidth:
+                              3, // Adjust the thickness of the indicator
+                          backgroundColor: Colors.blue,
+                        ),
+                      )
+                    : const Text(
+                        'Save',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
               ),
             ),
           if (selectedMarker != null)
