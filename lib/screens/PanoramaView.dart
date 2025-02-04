@@ -27,9 +27,14 @@ class _PanoramaViewState extends State<PanoramaView> {
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
 
+  void initializeView() {
+    panoramaImages = widget.view.panoramaImages;
+  }
+
   @override
   void initState() {
     super.initState();
+    initializeView();
     SystemChrome.setPreferredOrientations(
         [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   }

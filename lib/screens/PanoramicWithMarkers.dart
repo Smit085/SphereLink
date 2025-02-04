@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
@@ -68,25 +69,48 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       await viewsDir.create(recursive: true);
     }
 
-    // Create a new view object
+    final originalImagePath = panoramaImages.first.image.path;
+
+    final thumbnailPath =
+        await _compressAndSaveThumbnail(originalImagePath, viewName);
+
     final newView = ViewData(
       panoramaImages: panoramaImages,
       viewName: viewName,
-      thumbnailImage: panoramaImages.first.image,
+      thumbnailImage: File(thumbnailPath),
       dateTime: DateTime.now(),
     );
 
-    // Save the view data to a JSON file
     final jsonPath = '${viewsDir.path}/$viewName.json';
     final file = File(jsonPath);
     await file.writeAsString(jsonEncode(newView.toJson()));
 
-    // Update UI
     setState(() {
       savedViews.add(newView);
       panoramaImages = [];
       _isLoading = false;
     });
+  }
+
+  Future<String> _compressAndSaveThumbnail(
+      String imagePath, String viewName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final thumbnailsDir = Directory('${directory.path}/thumbnails');
+    if (!await thumbnailsDir.exists()) {
+      await thumbnailsDir.create(recursive: true);
+    }
+
+    final thumbnailPath = '${thumbnailsDir.path}/$viewName.jpg';
+
+    final result = await FlutterImageCompress.compressAndGetFile(
+      imagePath,
+      thumbnailPath,
+      minWidth: 512,
+      minHeight: 256,
+      quality: 100,
+    );
+
+    return result?.path ?? imagePath;
   }
 
   Future<void> _showSaveDialog() async {
