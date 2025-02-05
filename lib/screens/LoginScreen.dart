@@ -124,6 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     context,
                                     AppColors.textColorPrimary,
                                     "Login successful",
+                                    Colors.white,
                                     "",
                                     () => {});
                               });
@@ -140,8 +141,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               });
                             } else {
                               WidgetsBinding.instance.addPostFrameCallback((_) {
-                                showCustomSnackBar(context, Colors.redAccent,
-                                    "Something went wrong.", "", () => {});
+                                showCustomSnackBar(
+                                    context,
+                                    Colors.redAccent,
+                                    "Something went wrong.",
+                                    Colors.white,
+                                    "",
+                                    () => {});
                               });
                             }
                           }

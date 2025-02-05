@@ -70,7 +70,7 @@ class _MainScreenState extends State<MainScreen> {
           _currentLocation = "Location Permission denied.";
         });
         showCustomSnackBar(context, AppColors.textColorPrimary,
-            "App permission denied.", "Settings", _openAppInfo);
+            "App permission denied.", Colors.white, "Settings", _openAppInfo);
         return;
       }
 

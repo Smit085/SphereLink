@@ -6,6 +6,7 @@ void showCustomSnackBar(
   context,
   Color color,
   String message,
+  Color msgColor,
   String btnText,
   Function() onTap,
 ) {
@@ -46,8 +47,8 @@ void showCustomSnackBar(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              message!,
-                              style: const TextStyle(color: Colors.black),
+                              message,
+                              style: TextStyle(color: msgColor),
                             ),
                             TextButton(
                               style: ButtonStyle(

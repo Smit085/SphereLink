@@ -120,6 +120,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          actionsPadding: const EdgeInsets.all(8),
           title: Text("Save Panorama View"),
           content: TextField(
             controller: nameController,
@@ -752,6 +753,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                           builder: (context) =>
                                               SingleChildScrollView(
                                             child: AlertDialog(
+                                              actionsPadding:
+                                                  const EdgeInsets.all(8),
                                               title: const Text('Edit Name'),
                                               content: ConstrainedBox(
                                                 constraints:

@@ -178,6 +178,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                     context,
                                     AppColors.textColorPrimary,
                                     "Signup successful",
+                                    Colors.white,
                                     "",
                                     () => {});
                               });
@@ -191,8 +192,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                   'User with this email already exists.';
                             } else {
                               WidgetsBinding.instance.addPostFrameCallback((_) {
-                                showCustomSnackBar(context, Colors.redAccent,
-                                    "Something went wrong.", "", () => {});
+                                showCustomSnackBar(
+                                    context,
+                                    Colors.redAccent,
+                                    "Something went wrong.",
+                                    Colors.white,
+                                    "",
+                                    () => {});
                               });
                             }
                           }

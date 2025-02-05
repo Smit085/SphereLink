@@ -270,6 +270,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: AlertDialog(
+        actionsPadding: const EdgeInsets.all(8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: Center(
           child: Text(
@@ -343,6 +344,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                                   context: context,
                                   builder: (BuildContext context) {
                                     return AlertDialog(
+                                      actionsPadding: const EdgeInsets.all(8),
                                       title: const Text('Pick a color!'),
                                       content: SingleChildScrollView(
                                         child: ColorPicker(

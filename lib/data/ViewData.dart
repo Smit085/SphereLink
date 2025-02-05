@@ -5,7 +5,7 @@ import 'PanoramaImage.dart';
 
 class ViewData {
   final List<PanoramaImage> panoramaImages;
-  final String viewName;
+  String viewName;
   final File thumbnailImage;
   final DateTime dateTime;
 
