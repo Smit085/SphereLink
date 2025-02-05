@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:spherelink/screens/PanoramaView.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
 import 'package:spherelink/utils/appColors.dart';
+import 'package:spherelink/widget/customSnackbar.dart';
 
 import '../data/ViewData.dart';
 
@@ -22,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isListView = false;
   bool isGroupedView = false;
   bool isAscendingName = false;
-  bool isAscendingDuration = false;
+  bool isAscendingDateTime = false;
   List<ViewData> savedViews = [];
   List<ViewData> filteredViews = [];
   TextEditingController searchController = TextEditingController();
@@ -158,8 +159,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: SizedBox(
             width: 120, // Fixed width
             child: ListTile(
-              title: const Text('Duration'),
-              trailing: Icon(isAscendingDuration
+              title: const Text('DateTime'),
+              trailing: Icon(isAscendingDateTime
                   ? Icons.arrow_drop_up
                   : Icons.arrow_drop_down),
             ),
@@ -327,110 +328,253 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Expanded(
-            child: filteredViews.isEmpty
-                ? GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const PanoramicWithMarkers()),
-                      );
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Image(
-                          image: AssetImage("assets/ic_panorama.png"),
-                          width: 200,
-                          height: 200,
-                        ),
-                        Center(
-                          child: Text(
-                            savedViews.isEmpty
-                                ? "No views found! Tap to create one."
-                                : "No matching views found.",
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        )
-                      ],
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1,
-                      ),
-                      itemCount: filteredViews.length,
-                      itemBuilder: (context, index) {
-                        final view = filteredViews[index];
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        PanoramaView(view: view)));
-                          },
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: view.thumbnailImage.existsSync()
-                                      ? Image.file(
-                                          view.thumbnailImage,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                        )
-                                      : Image.asset(
-                                          'assets/placeholder_image.png',
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                        ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        view.viewName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year}",
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+            child: Padding(
+              padding: const EdgeInsets.all(0),
+              child: filteredViews.isEmpty
+                  ? _buildEmptyState()
+                  : isListView
+                      ? _buildListView()
+                      : _buildGridView(),
+            ),
+          )
+        ],
+      ),
+      floatingActionButton: Container(
+        width: 55,
+        height: 55,
+        decoration: const BoxDecoration(
+          color: AppColors.appsecondaryColor,
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.add, color: Colors.white),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const PanoramicWithMarkers()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PanoramicWithMarkers(),
+          ),
+        );
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Image(
+            image: AssetImage("assets/ic_panorama.png"),
+            width: 200,
+            height: 200,
+          ),
+          Center(
+            child: Text(
+              savedViews.isEmpty
+                  ? "No views found! Tap to create one."
+                  : "No matching views found.",
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildListView() {
+    return ListView.builder(
+      itemCount: filteredViews.length,
+      itemBuilder: (context, index) {
+        final view = filteredViews[index];
+        return ListTile(
+          onTap: () {
+            _showModalBottomSheet(view);
+          },
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: view.thumbnailImage.existsSync()
+                ? Image.file(view.thumbnailImage,
+                    width: 100, height: 60, fit: BoxFit.cover)
+                : const Icon(Icons.image),
+          ),
+          title: Text(
+            view.viewName,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+            "${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+            "${view.dateTime.minute.toString().padLeft(2, '0')} "
+            "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          trailing: IconButton(
+              onPressed: () => {},
+              icon: const Icon(
+                Icons.file_upload_outlined,
+                color: Colors.blue,
+              )),
+        );
+      },
+    );
+  }
+
+  void _showModalBottomSheet(ViewData view) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return Container(
+          height: 270,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(20),
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                TextButton(
+                  onPressed: () => {
+                    Navigator.pop(context),
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => PanoramaView(view: view)))
+                  },
+                  child: const Text("Preview",
+                      style: TextStyle(color: Colors.black)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showRenameDialog(view);
+                  },
+                  child: const Text("Rename",
+                      style: TextStyle(color: Colors.black)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Publish",
+                      style: TextStyle(color: Colors.black)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _deleteView(view);
+                  },
+                  child:
+                      const Text("Delete", style: TextStyle(color: Colors.red)),
+                ),
+                const Divider(
+                  thickness: 7,
+                  color: Colors.black12,
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Close",
+                      style: TextStyle(color: Colors.black)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGridView() {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 2,
+          mainAxisSpacing: 2,
+          childAspectRatio: 3 / 2),
+      itemCount: filteredViews.length,
+      itemBuilder: (context, index) {
+        final view = filteredViews[index];
+        return Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: GestureDetector(
+            onTap: () {
+              _showModalBottomSheet(view);
+            },
+            child: Card(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5)),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                children: [
+                  view.thumbnailImage.existsSync()
+                      ? Image.file(
+                          view.thumbnailImage,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        )
+                      : const Icon(Icons.videocam, color: Colors.grey),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      color: Colors.black54,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4.0, vertical: 2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            view.viewName,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+                            "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+                            "${view.dateTime.minute.toString().padLeft(2, '0')} "
+                            "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -470,4 +614,128 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void groupByName() {}
+
+  Future<void> _deleteView(ViewData view) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/views/${view.viewName}.json';
+    final file = File(filePath);
+    if (await file.exists()) {
+      await file.delete();
+      setState(() {
+        savedViews.remove(view);
+        filteredViews.remove(view);
+      });
+    }
+  }
+
+  Future<void> _renameView(ViewData view, String newName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final oldFile = File('${directory.path}/views/${view.viewName}.json');
+    final newFile = File('${directory.path}/views/$newName.json');
+    if (await oldFile.exists() && !await newFile.exists()) {
+      await oldFile.rename(newFile.path);
+      view.viewName = newName;
+      await newFile.writeAsString(jsonEncode(view.toJson()));
+      setState(() {
+        _loadViews();
+      });
+    } else {
+      showCustomSnackBar(context, Colors.redAccent, "Named already exists.",
+          Colors.white, "", () => {});
+    }
+  }
+
+  void _showRenameDialog(ViewData view) {
+    TextEditingController renameController =
+        TextEditingController(text: view.viewName);
+    bool isNameChanged = false;
+
+    renameController.addListener(() {
+      setState(() {
+        isNameChanged = renameController.text.isNotEmpty &&
+            renameController.text != view.viewName;
+      });
+    });
+
+    renameController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: renameController.text.length,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              actionsPadding: const EdgeInsets.all(8),
+              backgroundColor: AppColors.appsecondaryColor,
+              title: const Text(
+                "Rename",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Theme(
+                data: ThemeData(
+                  textSelectionTheme: const TextSelectionThemeData(
+                      selectionColor: Colors.lightBlueAccent),
+                ),
+                child: SizedBox(
+                  width: 300,
+                  child: TextField(
+                    onChanged: (text) => setState(() {
+                      isNameChanged = text.isNotEmpty && text != view.viewName;
+                    }),
+                    controller: renameController,
+                    autofocus: true,
+                    maxLines: 1,
+                    decoration: const InputDecoration(
+                      labelText: "Name",
+                      labelStyle: TextStyle(
+                        color: Colors.lightBlueAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Colors.lightBlueAccent, width: 2),
+                      ),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    cursorColor: Colors.lightBlueAccent,
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(
+                        color: Colors.lightBlueAccent,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton(
+                  onPressed: isNameChanged
+                      ? () {
+                          _renameView(view, renameController.text);
+                          Navigator.pop(context);
+                        }
+                      : null,
+                  child: Text(
+                    "OK",
+                    style: TextStyle(
+                        color: isNameChanged
+                            ? Colors.lightBlueAccent
+                            : Colors.blueGrey,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
