@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:spherelink/utils/mergeImages.dart';
+import 'package:spherelink/widget/customSnackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/MarkerData.dart';
@@ -145,6 +146,9 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     SnackBar(content: Text("View name cannot be empty")),
                   );
                 }
+                showCustomSnackBar(context, Colors.green,
+                    "New view created successfully.", Colors.white, "", null);
+                Navigator.of(context).pop();
               },
               child: Text("Save"),
             ),
