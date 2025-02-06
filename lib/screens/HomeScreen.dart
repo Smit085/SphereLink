@@ -85,16 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _sortViews(String sortBy) {
-    setState(() {
-      if (sortBy == 'Name') {
-        filteredViews.sort((a, b) => a.viewName.compareTo(b.viewName));
-      } else if (sortBy == 'Date') {
-        filteredViews.sort((a, b) => a.dateTime.compareTo(b.dateTime));
-      }
-    });
-  }
-
   List<PopupMenuEntry<String>> _buildMenuItems(BuildContext context) {
     if (currentMenu == 'main') {
       return [
@@ -194,14 +184,14 @@ class _HomeScreenState extends State<HomeScreen> {
           value: 'group_by_name',
           child: SizedBox(
             width: 120, // Fixed width
-            child: Text('Name'),
+            child: Text('A-Z'),
           ),
         ),
         const PopupMenuItem(
           value: 'group_by_folder',
           child: SizedBox(
             width: 120, // Fixed width
-            child: Text('Folder'),
+            child: Text('Name'),
           ),
         ),
       ];
@@ -225,6 +215,9 @@ class _HomeScreenState extends State<HomeScreen> {
             break;
           case 'group_by_none':
             groupByNone();
+            break;
+          case 'group_by_alphabets':
+            groupByAlphabets();
             break;
           case 'group_by_name':
             groupByName();
@@ -437,6 +430,76 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildGridView() {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 15,
+          childAspectRatio: 3 / 2),
+      itemCount: filteredViews.length,
+      itemBuilder: (context, index) {
+        final view = filteredViews[index];
+        return GestureDetector(
+          onTap: () {
+            _showModalBottomSheet(view);
+          },
+          child: Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              children: [
+                view.thumbnailImage.existsSync()
+                    ? Image.file(
+                        view.thumbnailImage,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      )
+                    : const Icon(Icons.videocam, color: Colors.grey),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    color: Colors.black54,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0, vertical: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          view.viewName,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+                          "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+                          "${view.dateTime.minute.toString().padLeft(2, '0')} "
+                          "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showModalBottomSheet(ViewData view) {
     showModalBottomSheet(
       context: context,
@@ -511,76 +574,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildGridView() {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 15,
-          childAspectRatio: 3 / 2),
-      itemCount: filteredViews.length,
-      itemBuilder: (context, index) {
-        final view = filteredViews[index];
-        return GestureDetector(
-          onTap: () {
-            _showModalBottomSheet(view);
-          },
-          child: Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              children: [
-                view.thumbnailImage.existsSync()
-                    ? Image.file(
-                        view.thumbnailImage,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                      )
-                    : const Icon(Icons.videocam, color: Colors.grey),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    color: Colors.black54,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 4.0, vertical: 2),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          view.viewName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
-                          "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
-                          "${view.dateTime.minute.toString().padLeft(2, '0')} "
-                          "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void sortByName() {
     setState(() {
       filteredViews.sort((a, b) {
@@ -616,7 +609,49 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void groupByName() {}
+  void groupByName() {
+    setState(() {
+      isGroupedView = true;
+
+      Map<String, List<ViewData>> groupedMap = {};
+
+      for (var view in savedViews) {
+        List<String> words = view.viewName.split(RegExp(r'[_\s-]+'));
+        String groupKey = words.isNotEmpty ? words[0] : view.viewName;
+
+        if (!groupedMap.containsKey(groupKey)) {
+          groupedMap[groupKey] = [];
+        }
+        groupedMap[groupKey]!.add(view);
+      }
+
+      // Convert the map to a sorted list
+      filteredViews =
+          groupedMap.entries.expand((entry) => entry.value).toList();
+    });
+  }
+
+  void groupByAlphabets() {
+    setState(() {
+      isGroupedView = true;
+
+      // Create a map to store groups by first letter
+      Map<String, List<ViewData>> groupedMap = {};
+
+      for (var view in savedViews) {
+        String firstLetter = view.viewName[0].toUpperCase();
+
+        if (!groupedMap.containsKey(firstLetter)) {
+          groupedMap[firstLetter] = [];
+        }
+        groupedMap[firstLetter]!.add(view);
+      }
+
+      // Convert the map to a sorted list
+      filteredViews =
+          groupedMap.entries.expand((entry) => entry.value).toList();
+    });
+  }
 
   Future<void> _deleteView(ViewData view) async {
     final directory = await getApplicationDocumentsDirectory();

@@ -44,14 +44,17 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations(
-        [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight
+    ]);
   }
 
   @override
   void dispose() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
@@ -349,11 +352,11 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    MediaQuery.of(context).orientation == Orientation.landscape
+        ? SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky)
+        : SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     final currentImage =
         panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
-    final currentMarkers = currentImage?.markers ?? [];
-
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.appprimaryBackgroundColor,
@@ -411,7 +414,10 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
             )
           else
             Center(
-              heightFactor: 1.5,
+              heightFactor:
+                  MediaQuery.of(context).orientation == Orientation.portrait
+                      ? double.infinity
+                      : 1.5,
               child: GestureDetector(
                 onTap: () {
                   _showBottomSheetForImage();
