@@ -27,6 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isAscendingDateTime = false;
   List<ViewData> savedViews = [];
   List<ViewData> filteredViews = [];
+  List<MapEntry<String, List<ViewData>>> groupedViews =
+      <MapEntry<String, List<ViewData>>>[];
   TextEditingController searchController = TextEditingController();
 
   @override
@@ -91,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(
           value: 'sort_by',
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: ListTile(
               title: Text('Sort by...'),
               trailing: Icon(Icons.arrow_right),
@@ -101,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(
           value: 'group_by',
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: ListTile(
               title: Text('Group by...'),
               trailing: Icon(Icons.arrow_right),
@@ -111,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
         PopupMenuItem(
           value: 'display_view',
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: ListTile(
               title: Text(isListView ? 'Display in grid' : 'Display in list'),
             ),
@@ -123,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(
           enabled: false,
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: Text(
               'Sort by...',
               style: TextStyle(
@@ -136,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
         PopupMenuItem(
           value: 'sort_by_name',
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: ListTile(
               title: const Text('Name'),
               trailing: Icon(isAscendingName
@@ -148,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
         PopupMenuItem(
           value: 'sort_by_date_time',
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: ListTile(
               title: const Text('DateTime'),
               trailing: Icon(isAscendingDateTime
@@ -163,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(
           enabled: false,
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: Text(
               'Group by...',
               style: TextStyle(
@@ -176,21 +178,21 @@ class _HomeScreenState extends State<HomeScreen> {
         const PopupMenuItem(
           value: 'group_by_none',
           child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: Text('None'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'group_by_alphabets',
+          child: SizedBox(
+            width: 120,
+            child: Text('A-Z'),
           ),
         ),
         const PopupMenuItem(
           value: 'group_by_name',
           child: SizedBox(
-            width: 120, // Fixed width
-            child: Text('A-Z'),
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'group_by_folder',
-          child: SizedBox(
-            width: 120, // Fixed width
+            width: 120,
             child: Text('Name'),
           ),
         ),
@@ -205,7 +207,6 @@ class _HomeScreenState extends State<HomeScreen> {
         currentMenu = value;
         _showCustomMenu(context);
       } else {
-        // Handle actual sorting or grouping
         switch (value) {
           case 'sort_by_name':
             sortByName();
@@ -391,112 +392,204 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildListView() {
-    return ListView.builder(
-      itemCount: filteredViews.length,
-      itemBuilder: (context, index) {
-        final view = filteredViews[index];
-        return ListTile(
-          onTap: () {
-            _showModalBottomSheet(view);
-          },
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: view.thumbnailImage.existsSync()
-                ? Image.file(view.thumbnailImage,
-                    width: 100, height: 60, fit: BoxFit.cover)
-                : const Icon(Icons.image),
-          ),
-          title: Text(
-            view.viewName,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
-            "${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
-            "${view.dateTime.minute.toString().padLeft(2, '0')} "
-            "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          trailing: IconButton(
-              onPressed: () => {},
-              icon: const Icon(
-                Icons.file_upload_outlined,
-                color: Colors.blue,
-              )),
-        );
+    if (isGroupedView) {
+      print("True");
+      return ListView.builder(
+        itemCount: groupedViews.length,
+        itemBuilder: (context, index) {
+          final group = groupedViews[index];
+          final groupName = group.key;
+          final groupItems = group.value;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                child: Text(
+                  groupName,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
+                ),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: groupItems.length,
+                itemBuilder: (context, subIndex) {
+                  final view = groupItems[subIndex];
+
+                  return _buildListTile(view);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      print("false");
+      return ListView.builder(
+        itemCount: filteredViews.length,
+        itemBuilder: (context, index) {
+          final view = filteredViews[index];
+          return _buildListTile(view);
+        },
+      );
+    }
+  }
+
+  Widget _buildListTile(ViewData view) {
+    return ListTile(
+      onTap: () {
+        _showModalBottomSheet(view);
       },
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(5),
+        child: view.thumbnailImage.existsSync()
+            ? Image.file(view.thumbnailImage,
+                width: 100, height: 60, fit: BoxFit.cover)
+            : const Icon(Icons.image),
+      ),
+      title: Text(
+        view.viewName,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+        "${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+        "${view.dateTime.minute.toString().padLeft(2, '0')} "
+        "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ),
+      trailing: IconButton(
+        onPressed: () => {},
+        icon: const Icon(
+          Icons.file_upload_outlined,
+          color: Colors.blue,
+        ),
+      ),
     );
   }
 
   Widget _buildGridView() {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    if (isGroupedView) {
+      return ListView.builder(
+        itemCount: groupedViews.length,
+        itemBuilder: (context, index) {
+          final group = groupedViews[index];
+          final groupName = group.key;
+          final groupItems = group.value;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                child: Text(
+                  groupName,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
+                ),
+              ),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 15,
+                  childAspectRatio: 3 / 2,
+                ),
+                itemCount: groupItems.length,
+                itemBuilder: (context, subIndex) {
+                  final view = groupItems[subIndex];
+                  return _buildGridTile(view);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 10,
           mainAxisSpacing: 15,
-          childAspectRatio: 3 / 2),
-      itemCount: filteredViews.length,
-      itemBuilder: (context, index) {
-        final view = filteredViews[index];
-        return GestureDetector(
-          onTap: () {
-            _showModalBottomSheet(view);
-          },
-          child: Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              children: [
-                view.thumbnailImage.existsSync()
-                    ? Image.file(
-                        view.thumbnailImage,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                      )
-                    : const Icon(Icons.videocam, color: Colors.grey),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    color: Colors.black54,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 4.0, vertical: 2),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          view.viewName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
-                          "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
-                          "${view.dateTime.minute.toString().padLeft(2, '0')} "
-                          "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+          childAspectRatio: 3 / 2,
+        ),
+        itemCount: filteredViews.length,
+        itemBuilder: (context, index) {
+          final view = filteredViews[index];
+          return _buildGridTile(view);
+        },
+      );
+    }
+  }
+
+  Widget _buildGridTile(ViewData view) {
+    return GestureDetector(
+      onTap: () {
+        _showModalBottomSheet(view);
       },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            view.thumbnailImage.existsSync()
+                ? Image.file(
+                    view.thumbnailImage,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                  )
+                : const Icon(Icons.videocam, color: Colors.grey),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.black54,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      view.viewName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+                      "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+                      "${view.dateTime.minute.toString().padLeft(2, '0')} "
+                      "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -613,21 +706,30 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       isGroupedView = true;
 
-      Map<String, List<ViewData>> groupedMap = {};
+      final Map<String, List<ViewData>> group = {};
 
       for (var view in savedViews) {
-        List<String> words = view.viewName.split(RegExp(r'[_\s-]+'));
-        String groupKey = words.isNotEmpty ? words[0] : view.viewName;
+        final words = view.viewName.split(RegExp(r'\s+'));
+        String groupKey = words.first;
 
-        if (!groupedMap.containsKey(groupKey)) {
-          groupedMap[groupKey] = [];
+        groupKey = groupKey.replaceAll(RegExp(r'\d+$'), '').trim();
+
+        if (group.containsKey(groupKey)) {
+          group[groupKey]!.add(view);
+        } else {
+          group[groupKey] = [view];
         }
-        groupedMap[groupKey]!.add(view);
       }
 
-      // Convert the map to a sorted list
-      filteredViews =
-          groupedMap.entries.expand((entry) => entry.value).toList();
+      final sortedGroupKeys = group.keys.toList()..sort();
+      for (var key in sortedGroupKeys) {
+        group[key]!.sort((a, b) => a.viewName.compareTo(b.viewName));
+      }
+
+      groupedViews =
+          sortedGroupKeys.map((key) => MapEntry(key, group[key]!)).toList();
+
+      print(groupedViews);
     });
   }
 
@@ -635,21 +737,31 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       isGroupedView = true;
 
-      // Create a map to store groups by first letter
-      Map<String, List<ViewData>> groupedMap = {};
-
+      final Map<String, List<ViewData>> group = {};
       for (var view in savedViews) {
-        String firstLetter = view.viewName[0].toUpperCase();
-
-        if (!groupedMap.containsKey(firstLetter)) {
-          groupedMap[firstLetter] = [];
+        final firstLetter = view.viewName[0].toUpperCase();
+        if (group.containsKey(firstLetter)) {
+          group[firstLetter]!.add(view);
+        } else {
+          group[firstLetter] = [view];
         }
-        groupedMap[firstLetter]!.add(view);
       }
 
-      // Convert the map to a sorted list
-      filteredViews =
-          groupedMap.entries.expand((entry) => entry.value).toList();
+      final sortedGroupKeys = group.keys.toList()..sort();
+
+      for (var key in sortedGroupKeys) {
+        group[key]!.sort((a, b) => a.viewName.compareTo(b.viewName));
+      }
+
+      final sortedGroupsList = <MapEntry<String, List<ViewData>>>[];
+      for (var key in sortedGroupKeys) {
+        sortedGroupsList.add(MapEntry(key, group[key]!));
+      }
+
+      setState(() {
+        groupedViews = sortedGroupsList;
+      });
+      print(groupedViews);
     });
   }
 
