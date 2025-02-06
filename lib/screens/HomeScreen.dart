@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:spherelink/screens/PanoramaView.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
@@ -258,16 +259,57 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.appprimaryBackgroundColor,
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
+        backgroundColor: AppColors.appprimaryBackgroundColor,
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search views',
+                          hintStyle: TextStyle(fontSize: 14),
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 0),
+                          suffixIcon: searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    searchController.clear();
+                                  },
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(left: 5),
                     decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -276,119 +318,83 @@ class _HomeScreenState extends State<HomeScreen> {
                           offset: const Offset(0, 3),
                         ),
                       ],
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search views',
-                        hintStyle: TextStyle(fontSize: 14),
-                        prefixIcon: const Icon(Icons.search),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                        suffixIcon: searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  searchController.clear();
-                                },
-                              )
-                            : null,
-                      ),
+                    child: IconButton(
+                      icon: const Icon(Icons.sort_rounded),
+                      onPressed: () {
+                        _showCustomMenu(context);
+                      },
                     ),
                   ),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(left: 5),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.sort_rounded),
-                    onPressed: () {
-                      _showCustomMenu(context);
-                    },
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(0),
-              child: filteredViews.isEmpty
-                  ? _buildEmptyState()
-                  : isListView
-                      ? _buildListView()
-                      : _buildGridView(),
-            ),
-          )
-        ],
-      ),
-      floatingActionButton: Container(
-        width: 55,
-        height: 55,
-        decoration: const BoxDecoration(
-          color: AppColors.appsecondaryColor,
-          shape: BoxShape.circle,
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: filteredViews.isEmpty
+                    ? _buildEmptyState()
+                    : isListView
+                        ? _buildListView()
+                        : _buildGridView(),
+              ),
+            )
+          ],
         ),
-        child: IconButton(
-          icon: const Icon(Icons.add, color: Colors.white),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const PanoramicWithMarkers()),
-            );
-          },
-        ),
-      ),
-    );
+        floatingActionButton: savedViews.isNotEmpty
+            ? Container(
+                width: 55,
+                height: 55,
+                decoration: const BoxDecoration(
+                  color: AppColors.appsecondaryColor,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const PanoramicWithMarkers()),
+                    );
+                  },
+                ),
+              )
+            : null);
   }
 
   Widget _buildEmptyState() {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const PanoramicWithMarkers(),
-          ),
-        );
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Image(
-            image: AssetImage("assets/ic_panorama.png"),
-            width: 200,
-            height: 200,
-          ),
-          Center(
-            child: Text(
-              savedViews.isEmpty
-                  ? "No views found! Tap to create one."
-                  : "No matching views found.",
-              style: const TextStyle(fontSize: 16),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PanoramicWithMarkers(),
+            ),
+          );
+        },
+        child: Center(
+          child: FittedBox(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  "assets/ic_panorama.png",
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.contain,
+                ),
+                Text(
+                  savedViews.isEmpty
+                      ? "No views found! Tap to create one."
+                      : "No matching views found.",
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
+        ));
   }
 
   Widget _buildListView() {
@@ -466,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    _showRenameDialog(view);
+                    _showRenameDialog(context, view);
                   },
                   child: const Text("Rename",
                       style: TextStyle(color: Colors.black)),
@@ -481,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    _deleteView(view);
+                    _showDeleteConfirmationDialog(context, view);
                   },
                   child:
                       const Text("Delete", style: TextStyle(color: Colors.red)),
@@ -509,68 +515,65 @@ class _HomeScreenState extends State<HomeScreen> {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 2,
-          mainAxisSpacing: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 15,
           childAspectRatio: 3 / 2),
       itemCount: filteredViews.length,
       itemBuilder: (context, index) {
         final view = filteredViews[index];
-        return Padding(
-          padding: const EdgeInsets.all(4.0),
-          child: GestureDetector(
-            onTap: () {
-              _showModalBottomSheet(view);
-            },
-            child: Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5)),
-              clipBehavior: Clip.antiAlias,
-              child: Stack(
-                children: [
-                  view.thumbnailImage.existsSync()
-                      ? Image.file(
-                          view.thumbnailImage,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        )
-                      : const Icon(Icons.videocam, color: Colors.grey),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      color: Colors.black54,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4.0, vertical: 2),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            view.viewName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
-                            "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
-                            "${view.dateTime.minute.toString().padLeft(2, '0')} "
-                            "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
-                            style: const TextStyle(
-                              fontSize: 10,
+        return GestureDetector(
+          onTap: () {
+            _showModalBottomSheet(view);
+          },
+          child: Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              children: [
+                view.thumbnailImage.existsSync()
+                    ? Image.file(
+                        view.thumbnailImage,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      )
+                    : const Icon(Icons.videocam, color: Colors.grey),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    color: Colors.black54,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0, vertical: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          view.viewName,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
                               color: Colors.white,
-                            ),
-                          )
-                        ],
-                      ),
+                              fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+                          "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+                          "${view.dateTime.minute.toString().padLeft(2, '0')} "
+                          "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                          ),
+                        )
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -625,6 +628,8 @@ class _HomeScreenState extends State<HomeScreen> {
         savedViews.remove(view);
         filteredViews.remove(view);
       });
+      showCustomSnackBar(context, Colors.green, "View deleted successfully",
+          Colors.white, "", null);
     }
   }
 
@@ -645,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showRenameDialog(ViewData view) {
+  void _showRenameDialog(BuildContext context, ViewData view) {
     TextEditingController renameController =
         TextEditingController(text: view.viewName);
     bool isNameChanged = false;
@@ -734,6 +739,49 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, ViewData view) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          actionsPadding: const EdgeInsets.only(right: 16, bottom: 16),
+          backgroundColor: AppColors.appsecondaryColor,
+          title: const Text(
+            "Confirm Delete",
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            "Are you sure you want to delete this view?",
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                "Cancel",
+                style: TextStyle(
+                    color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteView(view);
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                "Delete",
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         );
       },
     );
