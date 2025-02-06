@@ -8,7 +8,7 @@ void showCustomSnackBar(
   String message,
   Color msgColor,
   String btnText,
-  Function() onTap,
+  Function()? onTap,
 ) {
   final overlay = Overlay.of(context);
 

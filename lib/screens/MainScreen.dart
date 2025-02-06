@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
@@ -20,12 +22,65 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   String _currentLocation = "Tap to fetch location";
+  String _username = "Guest User";
 
   static final List<Widget> _widgetOptions = <Widget>[
     const HomeScreen(),
     const ExploreScreen(),
     const ProfileScreen(),
   ];
+
+  StreamSubscription<Position>? _positionStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _startLocationUpdates();
+    _fetchUsername();
+  }
+
+  Future<void> _fetchUsername() async {
+    String? storedUsername = await Session().getSession();
+    if (mounted) {
+      setState(() {
+        _username = storedUsername ?? "Guest User";
+      });
+    }
+  }
+
+  void _startLocationUpdates() {
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings:
+          const LocationSettings(accuracy: LocationAccuracy.medium),
+    ).listen((Position position) {
+      _updateLocation(position);
+    }, onError: (error) {
+      // Handle errors
+      print("Location stream error: $error");
+    });
+  }
+
+  void _updateLocation(Position position) async {
+    try {
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isNotEmpty) {
+        Placemark placemark = placemarks[0];
+        setState(() {
+          _currentLocation =
+              "${placemark.locality}, ${placemark.administrativeArea}, ${placemark.country}";
+        });
+      }
+    } catch (e) {
+      print("Error getting placemark: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _positionStream?.cancel();
+    super.dispose();
+  }
 
   Future<void> _openAppInfo() async {
     const intent = AndroidIntent(
@@ -127,6 +182,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
           title: _AppBarTitle(
+            username: _username,
             location: _currentLocation,
             onRefresh: _fetchLocation,
           ),
@@ -241,18 +297,16 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 class _AppBarTitle extends StatelessWidget {
+  final String username;
   final String location;
   final VoidCallback onRefresh;
 
   const _AppBarTitle({
-    Key? key,
+    super.key,
+    required this.username,
     required this.location,
     required this.onRefresh,
-  }) : super(key: key);
-
-  Future<String> _fetchUsername() async {
-    return await Session().getSession() ?? "Guest User";
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -263,42 +317,26 @@ class _AppBarTitle extends StatelessWidget {
           icon: const Icon(Icons.my_location_outlined, color: Colors.white),
         ),
         Expanded(
-          child: FutureBuilder<String>(
-            future: _fetchUsername(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator(); // Optional: Loading indicator
-              } else if (snapshot.hasError) {
-                return const Text(
-                  "Error fetching username",
-                  style: TextStyle(color: Colors.red, fontSize: 14),
-                );
-              } else {
-                String username = snapshot.data ?? "Guest User";
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      username,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      location,
-                      style: TextStyle(
-                        color: location == "Unable to fetch location"
-                            ? Colors.red[300]
-                            : Colors.white70,
-                        fontSize: 12,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                );
-              }
-            },
-          ),
-        ),
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              username,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              location,
+              style: TextStyle(
+                color: location == "Unable to fetch location"
+                    ? Colors.red[300]
+                    : Colors.white70,
+                fontSize: 12,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ))
       ],
     );
   }
