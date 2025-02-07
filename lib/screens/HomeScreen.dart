@@ -272,20 +272,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Container(
                   color: AppColors.appprimaryColor,
-                  padding: const EdgeInsets.only(left: 16, top: 0, bottom: 18),
+                  padding: const EdgeInsets.only(left: 16),
                   width: double.infinity,
-                  child: const Text(
-                    "",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                Container(
-                  color: AppColors.appprimaryColor,
                   child: const TabBar(
+                    padding: EdgeInsets.only(top: 44),
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.grey,
                     indicatorColor: AppColors.textColorPrimary,
@@ -293,11 +283,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     dividerHeight: 0,
                     labelPadding: EdgeInsets.only(top: 4),
                     tabs: [
-                      Tab(
-                        text: "Local",
-                        height: 35,
-                      ),
-                      Tab(text: "Published", height: 35)
+                      Tab(text: "Local", height: 35),
+                      Tab(text: "Published", height: 35),
                     ],
                   ),
                 ),
