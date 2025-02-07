@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:spherelink/core/userSettings.dart';
@@ -13,7 +14,7 @@ import 'package:spherelink/widget/customSnackbar.dart';
 import '../data/ViewData.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -261,12 +262,88 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
         backgroundColor: AppColors.appprimaryBackgroundColor,
-        body: Column(
+        body: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+            Column(
+              children: [
+                Container(
+                  color: AppColors.appprimaryColor,
+                  padding: const EdgeInsets.only(left: 16, top: 0, bottom: 18),
+                  width: double.infinity,
+                  child: const Text(
+                    "",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                Container(
+                  color: AppColors.appprimaryColor,
+                  child: const TabBar(
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: AppColors.textColorPrimary,
+                    indicatorWeight: 3,
+                    dividerHeight: 0,
+                    labelPadding: EdgeInsets.only(top: 4),
+                    tabs: [
+                      Tab(
+                        text: "Local",
+                        height: 35,
+                      ),
+                      Tab(text: "Published", height: 35)
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: TabBarView(
+                      children: [
+                        isLoading
+                            ? isListView
+                                ? ListView.builder(
+                                    itemCount: 8,
+                                    itemBuilder: (context, index) =>
+                                        _buildShimmerTile(),
+                                  )
+                                : GridView.builder(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 15,
+                                      childAspectRatio: 3 / 2,
+                                    ),
+                                    itemCount: 10,
+                                    itemBuilder: (context, index) =>
+                                        _buildShimmerGridTile(),
+                                  )
+                            : filteredViews.isEmpty
+                                ? _buildEmptyState()
+                                : isListView
+                                    ? _buildListView()
+                                    : _buildGridView(),
+                        const Center(
+                            child:
+                                Text("Published views will be displayed here")),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Positioned(
+              top: 0,
+              left: 16,
+              right: 16,
               child: Row(
                 children: [
                   Expanded(
@@ -285,8 +362,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: TextField(
                         controller: searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search views',
-                          hintStyle: TextStyle(fontSize: 14),
+                          hintText: 'Explore your views...',
+                          hintStyle: const TextStyle(fontSize: 14),
                           prefixIcon: const Icon(Icons.search),
                           filled: true,
                           fillColor: Colors.white,
@@ -332,36 +409,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: isLoading
-                    ? isListView
-                        ? ListView.builder(
-                            itemCount: 8,
-                            itemBuilder: (context, index) =>
-                                _buildShimmerTile(),
-                          )
-                        : GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 15,
-                              childAspectRatio: 3 / 2,
-                            ),
-                            itemCount: 10,
-                            itemBuilder: (context, index) =>
-                                _buildShimmerGridTile(),
-                          )
-                    : filteredViews.isEmpty
-                        ? _buildEmptyState()
-                        : isListView
-                            ? _buildListView()
-                            : _buildGridView(),
-              ),
-            )
           ],
         ),
         floatingActionButton: savedViews.isNotEmpty
@@ -383,7 +430,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               )
-            : null);
+            : null,
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
