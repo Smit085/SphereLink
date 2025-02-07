@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:spherelink/core/userSettings.dart';
 import 'package:spherelink/screens/PanoramaView.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
 import 'package:spherelink/utils/appColors.dart';
@@ -21,7 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<String> sortOptions = ["Name", "Date"];
   String selectedSortOption = "name";
   String currentMenu = "main";
-  bool isListView = false;
+  bool isListView = true;
+  bool isLoading = true;
   bool isGroupedView = false;
   bool isAscendingName = false;
   bool isAscendingDateTime = false;
@@ -30,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<MapEntry<String, List<ViewData>>> groupedViews =
       <MapEntry<String, List<ViewData>>>[];
   TextEditingController searchController = TextEditingController();
+  final UserSettings _userSettings = UserSettings();
 
   @override
   void initState() {
@@ -63,6 +67,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadViews() async {
+    bool? savedViewType = await _userSettings.getViewType();
+    setState(() {
+      isListView = savedViewType ?? true;
+    });
     final directory = await getApplicationDocumentsDirectory();
     final viewsDir = Directory('${directory.path}/views');
     if (!await viewsDir.exists()) {
@@ -84,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       savedViews = viewList;
       filteredViews = List.from(viewList);
+      isLoading = false;
     });
   }
 
@@ -327,11 +336,30 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: filteredViews.isEmpty
-                    ? _buildEmptyState()
-                    : isListView
-                        ? _buildListView()
-                        : _buildGridView(),
+                child: isLoading
+                    ? isListView
+                        ? ListView.builder(
+                            itemCount: 8,
+                            itemBuilder: (context, index) =>
+                                _buildShimmerTile(),
+                          )
+                        : GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 15,
+                              childAspectRatio: 3 / 2,
+                            ),
+                            itemCount: 10,
+                            itemBuilder: (context, index) =>
+                                _buildShimmerGridTile(),
+                          )
+                    : filteredViews.isEmpty
+                        ? _buildEmptyState()
+                        : isListView
+                            ? _buildListView()
+                            : _buildGridView(),
               ),
             )
           ],
@@ -392,8 +420,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildListView() {
+    if (isLoading) {
+      return ListView.builder(
+        itemCount: 8,
+        itemBuilder: (context, index) => _buildShimmerListTile(),
+      );
+    }
+
     if (isGroupedView) {
-      print("True");
       return ListView.builder(
         itemCount: groupedViews.length,
         itemBuilder: (context, index) {
@@ -406,13 +440,14 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
                 child: Text(
                   groupName,
                   style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
               ListView.builder(
@@ -421,7 +456,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemCount: groupItems.length,
                 itemBuilder: (context, subIndex) {
                   final view = groupItems[subIndex];
-
                   return _buildListTile(view);
                 },
               ),
@@ -430,7 +464,6 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
     } else {
-      print("false");
       return ListView.builder(
         itemCount: filteredViews.length,
         itemBuilder: (context, index) {
@@ -439,6 +472,68 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
     }
+  }
+
+  Widget _buildShimmerListTile() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: Container(
+                width: 100,
+                height: 60,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                      width: double.infinity, height: 12, color: Colors.white),
+                  const SizedBox(height: 8),
+                  Container(width: 150, height: 10, color: Colors.white),
+                ],
+              ),
+            ),
+            Container(width: 24, height: 24, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerTile() {
+    return Shimmer.fromColors(
+      baseColor: Colors.white12,
+      highlightColor: Colors.white54,
+      child: ListTile(
+        leading: Container(
+          width: 100,
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(5),
+          ),
+        ),
+        title: Container(
+          width: double.infinity,
+          height: 10,
+          color: Colors.white,
+        ),
+        subtitle: Container(
+          width: 150,
+          height: 10,
+          color: Colors.white,
+        ),
+      ),
+    );
   }
 
   Widget _buildListTile(ViewData view) {
@@ -471,6 +566,45 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: const Icon(
           Icons.file_upload_outlined,
           color: Colors.blue,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerGridTile() {
+    return Shimmer.fromColors(
+      baseColor: Colors.white12,
+      highlightColor: Colors.white54,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        margin: const EdgeInsets.all(5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 5),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Container(
+                  width: double.infinity, height: 10, color: Colors.white),
+            ),
+            const SizedBox(height: 5),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Container(width: 80, height: 10, color: Colors.white),
+            ),
+          ],
         ),
       ),
     );
@@ -696,10 +830,11 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void toggleDisplayView() {
+  void toggleDisplayView() async {
     setState(() {
       isListView = !isListView;
     });
+    _userSettings.saveViewType(isListView);
   }
 
   void groupByName() {
