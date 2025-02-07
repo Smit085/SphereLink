@@ -784,50 +784,65 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                TextButton(
-                  onPressed: () => {
-                    Navigator.pop(context),
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => PanoramaView(view: view)))
-                  },
-                  child: const Text("Preview",
-                      style: TextStyle(color: Colors.black)),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => {
+                      Navigator.pop(context),
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => PanoramaView(view: view)))
+                    },
+                    child: const Text("Preview",
+                        style: TextStyle(color: Colors.black)),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showRenameDialog(context, view);
-                  },
-                  child: const Text("Rename",
-                      style: TextStyle(color: Colors.black)),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showRenameDialog(context, view);
+                    },
+                    child: const Text("Rename",
+                        style: TextStyle(color: Colors.black)),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Publish",
-                      style: TextStyle(color: Colors.black)),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Publish",
+                        style: TextStyle(color: Colors.black)),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showDeleteConfirmationDialog(context, view);
-                  },
-                  child:
-                      const Text("Delete", style: TextStyle(color: Colors.red)),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showDeleteConfirmationDialog(context, view);
+                    },
+                    child: const Text("Delete",
+                        style: TextStyle(color: Colors.red)),
+                  ),
                 ),
                 const Divider(
                   thickness: 7,
                   color: Colors.black12,
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Close",
-                      style: TextStyle(color: Colors.black)),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Close",
+                        style: TextStyle(color: Colors.black)),
+                  ),
                 ),
               ],
             ),
