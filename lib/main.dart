@@ -3,7 +3,6 @@ import 'package:spherelink/screens/MainScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
-import 'package:spherelink/screens/PanoramicWithMarkers.dart';
 
 void main() {
   final ImagePickerPlatform imagePickerImplementation =
@@ -11,11 +10,11 @@ void main() {
   if (imagePickerImplementation is ImagePickerAndroid) {
     imagePickerImplementation.useAndroidPhotoPicker = true;
   }
-  runApp(const MyApp());
+  runApp(const SphereLink());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SphereLink extends StatelessWidget {
+  const SphereLink({super.key});
   @override
   Widget build(BuildContext context) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

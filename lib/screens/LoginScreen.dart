@@ -4,7 +4,7 @@ import 'package:spherelink/utils/appColors.dart';
 import '../widget/customSnackbar.dart';
 import 'MainScreen.dart';
 import 'RegistrationScreen.dart';
-import 'package:spherelink/core/apiClient.dart';
+import 'package:spherelink/core/apiService.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

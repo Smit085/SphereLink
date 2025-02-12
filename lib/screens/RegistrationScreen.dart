@@ -1,4 +1,4 @@
-import 'package:spherelink/core/apiClient.dart';
+import 'package:spherelink/core/apiService.dart';
 import 'package:spherelink/screens/LoginScreen.dart';
 import 'package:flutter/material.dart';
 
