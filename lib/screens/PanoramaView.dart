@@ -26,6 +26,7 @@ class _PanoramaViewState extends State<PanoramaView> {
   double currentLatitude = 0.0;
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
+  bool isOpen = true;
 
   void initializeView() {
     panoramaImages = widget.view.panoramaImages;
@@ -223,98 +224,242 @@ class _PanoramaViewState extends State<PanoramaView> {
                 ],
               ),
             ),
-          Align(
+          Stack(
             alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 100,
-              color: Colors.black.withOpacity(0.5),
-              child: ReorderableListView(
-                proxyDecorator:
-                    (Widget child, int index, Animation<double> animation) {
-                  return Material(
-                    color: Colors.transparent,
-                    child: child,
-                  );
-                },
-                scrollDirection: Axis.horizontal,
-                onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (newIndex > oldIndex) {
-                      newIndex -= 1;
-                    }
-                    final item = panoramaImages.removeAt(oldIndex);
-                    panoramaImages.insert(newIndex, item);
-                  });
-                },
-                children: [
-                  for (int index = 0; index < panoramaImages.length; index++)
-                    GestureDetector(
-                      key: Key('$index'),
-                      onTap: () {
-                        setState(() {
-                          currentImageId = index;
-                          _selectedIndex = index;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+                bottom: isOpen ? 0 : -90,
+                left: 0,
+                right: 0,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        width: double.infinity,
+                        height: 90,
+                        decoration: const BoxDecoration(color: Colors.black45),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 5),
+                        child: ReorderableListView(
+                          proxyDecorator: (Widget child, int index,
+                              Animation<double> animation) {
+                            return Material(
+                              color: Colors.transparent,
+                              child: child,
+                            );
+                          },
+                          scrollDirection: Axis.horizontal,
+                          onReorder: (oldIndex, newIndex) {
+                            setState(() {
+                              if (newIndex > oldIndex) {
+                                newIndex -= 1;
+                              }
+                              final item = panoramaImages.removeAt(oldIndex);
+                              panoramaImages.insert(newIndex, item);
+                            });
+                          },
                           children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: _selectedIndex == index
-                                      ? Colors.blue
-                                      : Colors.transparent,
-                                  width: _selectedIndex == index ? 2.0 : 0.0,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: SizedBox(
-                                  width: 150,
-                                  height: 100,
-                                  child: Image.file(
-                                    panoramaImages[index].image,
-                                    fit: BoxFit.cover,
+                            for (int index = 0;
+                                index < panoramaImages.length;
+                                index++)
+                              GestureDetector(
+                                key: Key('$index'),
+                                onTap: () {
+                                  setState(() {
+                                    currentImageId = index;
+                                    _selectedIndex = index;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: _selectedIndex == index
+                                                ? Colors.blue
+                                                : Colors.transparent,
+                                            width: _selectedIndex == index
+                                                ? 2.0
+                                                : 0.0,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(2),
+                                          child: SizedBox(
+                                            width: 120,
+                                            child: Image.file(
+                                              panoramaImages[index].image,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        bottom: 5,
+                                        left: 5,
+                                        child: Container(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 100,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withAlpha(140),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            panoramaImages[index]
+                                                .imageName
+                                                .toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              bottom: 5,
-                              left: 5,
-                              child: Container(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 140,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withAlpha(140),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  panoramaImages[index].imageName.toString(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+                bottom: isOpen ? 83 : 10,
+                child: GestureDetector(
+                  onTap: () => {
+                    setState(() {
+                      isOpen = !isOpen;
+                    })
+                  },
+                  child: Container(
+                    width: 65,
+                    height: 25,
+                    decoration: BoxDecoration(
+                      color: AppColors.appsecondaryColor,
+                      borderRadius: BorderRadius.circular(45),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 5,
+                          spreadRadius: 1,
+                        )
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        isOpen
+                            ? Icons.arrow_drop_down_rounded
+                            : Icons.arrow_drop_up_rounded,
+                        color: Colors.white70,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+                bottom: isOpen ? 95 : 10,
+                left: 10, // Adjusts dynamically
+                child: GestureDetector(
+                  onTap: currentImageId > 0
+                      ? () {
+                          setState(() {
+                            currentImageId--;
+                            _selectedIndex = currentImageId;
+                          });
+                        }
+                      : null,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.appsecondaryColor,
+                      borderRadius: BorderRadius.circular(45),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 5,
+                          spreadRadius: 1,
+                        )
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.arrow_left_rounded,
+                        color: currentImageId > 0
+                            ? Colors.white70
+                            : Colors.white12,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+                bottom: isOpen ? 95 : 10,
+                right: 10, // Adjusts dynamically
+                child: GestureDetector(
+                  onTap: currentImageId < panoramaImages.length - 1
+                      ? () {
+                          setState(() {
+                            currentImageId++;
+                            _selectedIndex = currentImageId;
+                          });
+                        }
+                      : null,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.appsecondaryColor,
+                      borderRadius: BorderRadius.circular(45),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 5,
+                          spreadRadius: 1,
+                        )
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.arrow_right_rounded,
+                        color: currentImageId < panoramaImages.length - 1
+                            ? Colors.white70
+                            : Colors.white12,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
         ],
       ),
     );
