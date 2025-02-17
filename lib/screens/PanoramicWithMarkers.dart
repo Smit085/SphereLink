@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:custom_radio_grouped_button/custom_radio_grouped_button.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:tuple/tuple.dart';
 import 'package:spherelink/utils/mergeImages.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,7 +24,7 @@ import '../utils/markerFormDialog.dart';
 import '../utils/nipPainter.dart';
 
 class PanoramicWithMarkers extends StatefulWidget {
-  const PanoramicWithMarkers({Key? key}) : super(key: key);
+  const PanoramicWithMarkers({super.key});
 
   @override
   State<PanoramicWithMarkers> createState() => _PanoramicWithMarkersState();
@@ -36,6 +38,15 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   double currentLatitude = 0.0;
   int currentImageId = 0;
   bool _isLoading = false;
+  bool _isPreviewListOpen = false;
+  bool _isSettingsOpen = false;
+  late bool _isAnimationEnable = false;
+  late bool _showHotspots = true;
+  late bool _isBgMusicEnable = false;
+  List<String> interactionMode = ["Touch"];
+  String viewModes = "Phone";
+  double iconOpacity = 1;
+  double _animationSpeed = 1;
 
   late List<PanoramaImage> panoramaImages = [];
   final ImagePicker _imagePicker = ImagePicker();
@@ -132,7 +143,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => {
+                Navigator.of(context).pop(),
+                setState(() {
+                  _isLoading = false;
+                })
+              },
               child: Text("Cancel"),
             ),
             ElevatedButton(
@@ -155,7 +171,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           ],
         );
       },
-    );
+    ).then((_) {
+      // Call setState after dialog is closed
+      setState(() {
+        _isLoading = false;
+      });
+    });
   }
 
   void _addMarker(double longitude, double latitude) {
@@ -368,36 +389,46 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
         children: [
           if (panoramaImages.isNotEmpty)
             PanoramaViewer(
+              key: ValueKey(Tuple3(_animationSpeed, _isAnimationEnable,
+                  interactionMode.toString())),
+              animSpeed: _isAnimationEnable ? _animationSpeed : 0,
               animReverse: true,
               sensitivity: 1.8,
+              interactive: interactionMode.contains("Touch") ? true : false,
+              sensorControl: interactionMode.contains("Gyro")
+                  ? SensorControl.absoluteOrientation
+                  : SensorControl.none,
               hotspots: currentImage?.markers.map((marker) {
                 return Hotspot(
                   longitude: marker.longitude,
                   latitude: marker.latitude,
                   name: marker.label,
-                  widget: IconButton(
-                    onPressed: () {
-                      switch (marker.selectedAction) {
-                        case "Navigation":
-                          setState(() {
-                            _selectedIndex = null;
-                            currentImageId = marker.nextImageId;
-                          });
-                        case "Label":
-                          setState(() {
-                            _selectedIndex = null;
-                          });
-                          _showMarkerLabel(marker);
-                        case "Banner":
-                          setState(() {
-                            _selectedIndex = null;
-                          });
-                          _showMarkerLabel(marker);
-                      }
-                    },
-                    icon: Icon(marker.selectedIcon,
-                        color: marker.selectedIconColor),
-                    iconSize: 35,
+                  widget: Opacity(
+                    opacity: iconOpacity,
+                    child: IconButton(
+                      onPressed: () {
+                        switch (marker.selectedAction) {
+                          case "Navigation":
+                            setState(() {
+                              _selectedIndex = null;
+                              currentImageId = marker.nextImageId;
+                            });
+                          case "Label":
+                            setState(() {
+                              _selectedIndex = null;
+                            });
+                            _showMarkerLabel(marker);
+                          case "Banner":
+                            setState(() {
+                              _selectedIndex = null;
+                            });
+                            _showMarkerLabel(marker);
+                        }
+                      },
+                      icon: Icon(marker.selectedIcon,
+                          color: marker.selectedIconColor),
+                      iconSize: 35,
+                    ),
                   ),
                 );
               }).toList(),
@@ -688,223 +719,808 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 ],
               ),
             ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 100,
-              color: Colors.black.withOpacity(0.5),
-              child: ReorderableListView(
-                proxyDecorator:
-                    (Widget child, int index, Animation<double> animation) {
-                  return Material(
-                    color: Colors.transparent,
-                    child: child,
-                  );
+          Stack(alignment: Alignment.bottomCenter, children: [
+            Positioned(
+              top: 20,
+              left: 12,
+              child: GestureDetector(
+                onTap: () {
+                  panoramaImages.isNotEmpty
+                      ? _showConfirmationDialog(context)
+                      : Navigator.of(context).pop();
                 },
-                scrollDirection: Axis.horizontal,
-                onReorder: (oldIndex, newIndex) {
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.appsecondaryColor,
+                    borderRadius: BorderRadius.circular(45),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 5,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 20,
+              right: 12,
+              child: GestureDetector(
+                onTap: () {
+                  // SideSheet.right(
+                  //     sheetColor: AppColors.appprimaryColor,
+                  //     transitionDuration: const Duration(milliseconds: 350),
+                  //     body: viewsSettings(),
+                  //     width: 270,
+                  //     context: context);
                   setState(() {
-                    if (newIndex > oldIndex) {
-                      newIndex -= 1;
-                    }
-                    final item = panoramaImages.removeAt(oldIndex);
-                    panoramaImages.insert(newIndex, item);
+                    _isSettingsOpen = !_isSettingsOpen;
                   });
                 },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.appsecondaryColor,
+                    borderRadius: BorderRadius.circular(45),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 5,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.menu_rounded,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              bottom: _isPreviewListOpen ? 0 : -90,
+              left: 0,
+              right: 0,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (int index = 0; index < panoramaImages.length; index++)
-                    GestureDetector(
-                      key: Key('$index'),
-                      onTap: () {
-                        setState(() {
-                          currentImageId = index;
-                          _selectedIndex = index;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Stack(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: _selectedIndex == index
-                                      ? Colors.blue
-                                      : Colors.transparent,
-                                  width: _selectedIndex == index ? 2.0 : 0.0,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: SizedBox(
-                                  width: 150,
-                                  height: 100,
-                                  child: Image.file(
-                                    panoramaImages[index].image,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (_selectedIndex == index)
-                              Positioned(
-                                top: 5,
-                                right: 5,
-                                child: Row(
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      width: double.infinity,
+                      height: 90,
+                      decoration: const BoxDecoration(color: Colors.black45),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 5),
+                      child: ReorderableListView(
+                        proxyDecorator: (Widget child, int index,
+                            Animation<double> animation) {
+                          return Material(
+                            color: Colors.transparent,
+                            child: child,
+                          );
+                        },
+                        scrollDirection: Axis.horizontal,
+                        onReorder: (oldIndex, newIndex) {
+                          setState(() {
+                            if (newIndex > oldIndex) {
+                              newIndex -= 1;
+                            }
+                            final item = panoramaImages.removeAt(oldIndex);
+                            panoramaImages.insert(newIndex, item);
+                          });
+                        },
+                        children: [
+                          for (int index = 0;
+                              index < panoramaImages.length;
+                              index++)
+                            GestureDetector(
+                              key: Key('$index'),
+                              onTap: () {
+                                setState(() {
+                                  currentImageId = index;
+                                  _selectedIndex = index;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Stack(
                                   children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        _newImageNameController.text =
-                                            panoramaImages[index].imageName;
-                                        int editingIndex = index;
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) =>
-                                              SingleChildScrollView(
-                                            child: AlertDialog(
-                                              actionsPadding:
-                                                  const EdgeInsets.all(8),
-                                              title: const Text('Edit Name'),
-                                              content: ConstrainedBox(
-                                                constraints:
-                                                    const BoxConstraints(
-                                                  maxWidth:
-                                                      300, // Set a maximum width for the dialog content
-                                                ),
-                                                child: TextFormField(
-                                                  controller:
-                                                      _newImageNameController,
-                                                  decoration:
-                                                      const InputDecoration(
-                                                    labelText: "Enter New Name",
-                                                    border:
-                                                        OutlineInputBorder(),
-                                                  ),
-                                                ),
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(context),
-                                                  child: const Text('Cancel'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      panoramaImages[
-                                                                  editingIndex]
-                                                              .imageName =
-                                                          _newImageNameController
-                                                              .text;
-                                                    });
-                                                    Navigator.pop(context);
-                                                  },
-                                                  child: const Text('Save'),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Colors.blue.withOpacity(0.7),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: _selectedIndex == index
+                                              ? Colors.blue
+                                              : Colors.transparent,
+                                          width: _selectedIndex == index
+                                              ? 2.0
+                                              : 0.0,
                                         ),
-                                        padding: const EdgeInsets.all(4),
-                                        child: const Icon(
-                                          Icons.edit,
-                                          size: 20,
-                                          color: Colors.white,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(2),
+                                        child: SizedBox(
+                                          width: 150,
+                                          height: 100,
+                                          child: Image.file(
+                                            panoramaImages[index].image,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          panoramaImages.removeAt(index);
-                                          _selectedIndex = null;
-                                        });
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Colors.red.withOpacity(0.7),
+                                    if (_selectedIndex == index)
+                                      Positioned(
+                                        top: 5,
+                                        right: 5,
+                                        child: Row(
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                _newImageNameController.text =
+                                                    panoramaImages[index]
+                                                        .imageName;
+                                                int editingIndex = index;
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) =>
+                                                      SingleChildScrollView(
+                                                    child: AlertDialog(
+                                                      actionsPadding:
+                                                          const EdgeInsets.all(
+                                                              8),
+                                                      title: const Text(
+                                                          'Edit Name'),
+                                                      content: ConstrainedBox(
+                                                        constraints:
+                                                            const BoxConstraints(
+                                                          maxWidth:
+                                                              300, // Set a maximum width for the dialog content
+                                                        ),
+                                                        child: TextFormField(
+                                                          controller:
+                                                              _newImageNameController,
+                                                          decoration:
+                                                              const InputDecoration(
+                                                            labelText:
+                                                                "Enter New Name",
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context),
+                                                          child: const Text(
+                                                              'Cancel'),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              panoramaImages[
+                                                                          editingIndex]
+                                                                      .imageName =
+                                                                  _newImageNameController
+                                                                      .text;
+                                                            });
+                                                            Navigator.pop(
+                                                                context);
+                                                          },
+                                                          child: const Text(
+                                                              'Save'),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.blue
+                                                      .withOpacity(0.7),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.all(4),
+                                                child: const Icon(
+                                                  Icons.edit,
+                                                  size: 20,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  panoramaImages
+                                                      .removeAt(index);
+                                                  _selectedIndex = null;
+                                                });
+                                              },
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.red
+                                                      .withOpacity(0.7),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.all(4),
+                                                child: const Icon(
+                                                  Icons.delete,
+                                                  size: 20,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        padding: const EdgeInsets.all(4),
-                                        child: const Icon(
-                                          Icons.delete,
-                                          size: 20,
-                                          color: Colors.white,
+                                      ),
+                                    Positioned(
+                                      bottom: 5,
+                                      left: 5,
+                                      child: Container(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 140,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withAlpha(140),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          panoramaImages[index]
+                                              .imageName
+                                              .toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            Positioned(
-                              bottom: 5,
-                              left: 5,
+                            ),
+                          GestureDetector(
+                            key: const Key('add_image'),
+                            onTap: () {
+                              _showBottomSheetForImage();
+                              setState(() {
+                                _selectedIndex = null;
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
                               child: Container(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 140,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 4),
+                                width: 150,
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withAlpha(140),
+                                  color: Colors.white.withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Text(
-                                  panoramaImages[index].imageName.toString(),
-                                  style: const TextStyle(
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.add_circle_outline,
+                                    size: 40,
                                     color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  GestureDetector(
-                    key: const Key('add_image'),
-                    onTap: () {
-                      _showBottomSheetForImage();
-                      setState(() {
-                        _selectedIndex = null;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Container(
-                        width: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.add_circle_outline,
-                            size: 40,
-                            color: Colors.white,
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              bottom: _isPreviewListOpen ? 83 : 10,
+              child: GestureDetector(
+                onTap: () => {
+                  setState(() {
+                    _isPreviewListOpen = !_isPreviewListOpen;
+                  })
+                },
+                child: Container(
+                  width: 65,
+                  height: 25,
+                  decoration: BoxDecoration(
+                    color: AppColors.appsecondaryColor,
+                    borderRadius: BorderRadius.circular(45),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 5,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      _isPreviewListOpen
+                          ? Icons.arrow_drop_down_rounded
+                          : Icons.arrow_drop_up_rounded,
+                      color: Colors.white70,
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              bottom: _isPreviewListOpen ? 95 : 10,
+              left: 12,
+              // Adjusts dynamically
+              child: GestureDetector(
+                onTap: currentImageId > 0
+                    ? () {
+                        setState(() {
+                          currentImageId--;
+                          _selectedIndex = currentImageId;
+                        });
+                      }
+                    : null,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.appsecondaryColor,
+                    borderRadius: BorderRadius.circular(45),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 5,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_left_rounded,
+                      color:
+                          currentImageId > 0 ? Colors.white70 : Colors.white12,
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              bottom: _isPreviewListOpen ? 95 : 10,
+              right: 12,
+              // Adjusts dynamically
+              child: GestureDetector(
+                onTap: currentImageId < panoramaImages.length - 1
+                    ? () {
+                        setState(() {
+                          currentImageId++;
+                          _selectedIndex = currentImageId;
+                        });
+                      }
+                    : null,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.appsecondaryColor,
+                    borderRadius: BorderRadius.circular(45),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 5,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_right_rounded,
+                      color: currentImageId < panoramaImages.length - 1
+                          ? Colors.white70
+                          : Colors.white12,
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              right: _isSettingsOpen ? 0 : -270,
+              bottom: 0,
+              top: 0,
+              child: AnimatedContainer(
+                color: AppColors.appprimaryColor,
+                duration: const Duration(milliseconds: 300),
+                width: 270,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isSettingsOpen = !_isSettingsOpen;
+                              });
+                            },
+                            child: const Center(
+                              child: Icon(
+                                Icons.close_rounded,
+                                color: Colors.teal,
+                                size: 25,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 4,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              "Show Animation",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Switch(
+                            padding: const EdgeInsets.all(0),
+                            value: _isAnimationEnable,
+                            onChanged: (bool value) {
+                              setState(() {
+                                _isAnimationEnable = value;
+                                if (_isAnimationEnable) {
+                                  _animationSpeed = 1.0;
+                                } else {
+                                  _animationSpeed = 0.0;
+                                }
+                              });
+                            },
+                            activeColor: Colors.white,
+                            activeTrackColor: Colors.white.withOpacity(0.8),
+                            inactiveThumbColor: Colors.grey,
+                            inactiveTrackColor: Colors.grey.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                      if (_isAnimationEnable) ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Animation Speed: ",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              "${(_animationSpeed).toInt()}x",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2.0,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 8,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 0,
+                                ),
+                              ),
+                              child: Slider(
+                                value: _animationSpeed,
+                                min: 1,
+                                max: 100,
+                                divisions: 100,
+                                label: "${(_animationSpeed).toInt()}",
+                                onChanged: (double newValue) {
+                                  setState(() {
+                                    _animationSpeed = newValue;
+                                  });
+                                },
+                                activeColor: Colors.teal,
+                                inactiveColor: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              "Show Hotspot",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Switch(
+                            padding: const EdgeInsets.all(0),
+                            value: _showHotspots,
+                            onChanged: (bool value) {
+                              setState(() {
+                                _showHotspots = value;
+                              });
+                            },
+                            activeColor: Colors.white,
+                            activeTrackColor: Colors.white.withOpacity(0.8),
+                            inactiveThumbColor: Colors.grey,
+                            inactiveTrackColor: Colors.grey.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                      if (_showHotspots) ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Icon Opacity: ",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              "${(iconOpacity * 100).toInt()}%",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2.0,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 8,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 0,
+                                ),
+                              ),
+                              child: Slider(
+                                value: iconOpacity,
+                                min: 0.0,
+                                max: 1.0,
+                                divisions: 100,
+                                label: "${(iconOpacity * 100).toInt()}%",
+                                onChanged: (double newValue) {
+                                  setState(() {
+                                    iconOpacity = newValue;
+                                  });
+                                },
+                                activeColor: Colors.teal,
+                                inactiveColor: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              "Background Music",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Switch(
+                            padding: const EdgeInsets.all(0),
+                            value: _isBgMusicEnable,
+                            onChanged: (bool value) {
+                              setState(() {
+                                _isBgMusicEnable = value;
+                              });
+                            },
+                            activeColor: Colors.white,
+                            activeTrackColor: Colors.white.withOpacity(0.8),
+                            inactiveThumbColor: Colors.grey,
+                            inactiveTrackColor: Colors.grey.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Interaction Mode:",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          CustomCheckBoxGroup(
+                            autoWidth: true,
+                            buttonLables: const ["Gyro", "Touch"],
+                            buttonValuesList: const ["Gyro", "Touch"],
+                            checkBoxButtonValues: (values) {
+                              setState(() {
+                                interactionMode = List<String>.from(values);
+                              });
+                            },
+                            defaultSelected: interactionMode,
+                            enableShape: true,
+                            customShape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            selectedColor: Colors.teal,
+                            unSelectedColor: Colors.grey.shade800,
+                            selectedBorderColor: Colors.tealAccent,
+                            unSelectedBorderColor: Colors.grey.shade600,
+                            buttonTextStyle: const ButtonTextStyle(
+                              selectedColor: Colors.white,
+                              unSelectedColor: Colors.white70,
+                              textStyle: TextStyle(fontSize: 14),
+                            ),
+                            padding: 10,
+                            margin: EdgeInsets.only(right: 10, top: 10),
+                            elevation: 4,
+                            horizontal: false,
+                            height: 22,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Play as:",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          CustomRadioButton(
+                            autoWidth: true,
+                            buttonLables: const ["VR", "Phone"],
+                            buttonValues: const ["VR", "Phone"],
+                            radioButtonValue: (values) {
+                              setState(() {
+                                viewModes = values;
+                              });
+                            },
+                            defaultSelected: viewModes,
+                            enableShape: true,
+                            customShape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            selectedColor: Colors.teal,
+                            unSelectedColor: Colors.grey.shade800,
+                            selectedBorderColor: Colors.tealAccent,
+                            unSelectedBorderColor: Colors.grey.shade600,
+                            buttonTextStyle: const ButtonTextStyle(
+                              selectedColor: Colors.white,
+                              unSelectedColor: Colors.white70,
+                              textStyle: TextStyle(fontSize: 14),
+                            ),
+                            padding: 10,
+                            margin: EdgeInsets.only(right: 10, top: 10),
+                            elevation: 4,
+                            horizontal: false,
+                            height: 22,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ]),
         ],
       ),
+    );
+  }
+
+  void _showConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          actionsPadding: const EdgeInsets.only(right: 16, bottom: 16),
+          backgroundColor: AppColors.appsecondaryColor,
+          title: const Text(
+            "Confirm",
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            "Are you sure you want to go back without saving this view?",
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                "No",
+                style: TextStyle(
+                    color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                "Yes",
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
