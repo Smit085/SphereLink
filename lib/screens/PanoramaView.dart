@@ -26,7 +26,7 @@ class _PanoramaViewState extends State<PanoramaView> {
   double currentLatitude = 0.0;
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
-  bool isOpen = true;
+  bool _isPreviewListOpen = true;
 
   void initializeView() {
     panoramaImages = widget.view.panoramaImages;
@@ -108,6 +108,11 @@ class _PanoramaViewState extends State<PanoramaView> {
               setState(() {
                 currentLongitude = longitude;
                 currentLatitude = latitude;
+              });
+            },
+            onImageLoad: () {
+              setState(() {
+                _selectedIndex = 0;
               });
             },
           ),
@@ -230,7 +235,7 @@ class _PanoramaViewState extends State<PanoramaView> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeInOut,
-                bottom: isOpen ? 0 : -90,
+                bottom: _isPreviewListOpen ? 0 : -90,
                 left: 0,
                 right: 0,
                 child: Column(
@@ -345,11 +350,11 @@ class _PanoramaViewState extends State<PanoramaView> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeInOut,
-                bottom: isOpen ? 83 : 10,
+                bottom: _isPreviewListOpen ? 83 : 10,
                 child: GestureDetector(
                   onTap: () => {
                     setState(() {
-                      isOpen = !isOpen;
+                      _isPreviewListOpen = !_isPreviewListOpen;
                     })
                   },
                   child: Container(
@@ -368,7 +373,7 @@ class _PanoramaViewState extends State<PanoramaView> {
                     ),
                     child: Center(
                       child: Icon(
-                        isOpen
+                        _isPreviewListOpen
                             ? Icons.arrow_drop_down_rounded
                             : Icons.arrow_drop_up_rounded,
                         color: Colors.white70,
@@ -381,8 +386,8 @@ class _PanoramaViewState extends State<PanoramaView> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeInOut,
-                bottom: isOpen ? 95 : 10,
-                left: 10, // Adjusts dynamically
+                bottom: _isPreviewListOpen ? 95 : 10,
+                left: 12, // Adjusts dynamically
                 child: GestureDetector(
                   onTap: currentImageId > 0
                       ? () {
@@ -421,8 +426,8 @@ class _PanoramaViewState extends State<PanoramaView> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeInOut,
-                bottom: isOpen ? 95 : 10,
-                right: 10, // Adjusts dynamically
+                bottom: _isPreviewListOpen ? 95 : 10,
+                right: 12, // Adjusts dynamically
                 child: GestureDetector(
                   onTap: currentImageId < panoramaImages.length - 1
                       ? () {
