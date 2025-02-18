@@ -8,6 +8,7 @@ import 'package:panorama_viewer/panorama_viewer.dart';
 import '../data/MarkerData.dart';
 import '../data/PanoramaImage.dart';
 import '../data/ViewData.dart';
+import '../utils/RippleWaveIcon.dart';
 import '../utils/appColors.dart';
 import '../utils/nipPainter.dart';
 
@@ -77,8 +78,13 @@ class _PanoramaViewState extends State<PanoramaView> {
                 longitude: marker.longitude,
                 latitude: marker.latitude,
                 name: marker.label,
-                widget: IconButton(
-                  onPressed: () {
+                widget: RippleWaveIcon(
+                  icon: Icons.info,
+                  rippleColor: marker.selectedIconColor,
+                  iconSize: 32, // max: 32
+                  iconColor: marker.selectedIconColor,
+                  rippleDuration: const Duration(seconds: 3),
+                  onTap: () {
                     switch (marker.selectedAction) {
                       case "Navigation":
                         setState(() {
@@ -97,9 +103,6 @@ class _PanoramaViewState extends State<PanoramaView> {
                         _showMarkerLabel(marker);
                     }
                   },
-                  icon: Icon(marker.selectedIcon,
-                      color: marker.selectedIconColor),
-                  iconSize: 35,
                 ),
               );
             }).toList(),
