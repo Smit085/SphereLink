@@ -73,7 +73,7 @@ class _RippleWaveIconState extends State<RippleWaveIcon>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: widget.rippleColor
-                          .withOpacity((1 - animation.value).clamp(0.0, 1.0)),
+                          .withOpacity((1.2 - animation.value).clamp(0.0, 1.0)),
                     ),
                   ),
                 );
