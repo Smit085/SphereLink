@@ -21,10 +21,9 @@ class PanoramaView extends StatefulWidget {
 }
 
 class _PanoramaViewState extends State<PanoramaView> {
+  bool _isFirstLoad = false;
   int? _selectedIndex;
   MarkerData? selectedMarker;
-  double currentLongitude = 0.0;
-  double currentLatitude = 0.0;
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
   bool _isPreviewListOpen = true;
@@ -79,7 +78,7 @@ class _PanoramaViewState extends State<PanoramaView> {
                 latitude: marker.latitude,
                 name: marker.label,
                 widget: RippleWaveIcon(
-                  icon: Icons.info,
+                  icon: marker.selectedIcon,
                   rippleColor: marker.selectedIconColor,
                   iconSize: 32, // max: 32
                   iconColor: marker.selectedIconColor,
@@ -107,16 +106,13 @@ class _PanoramaViewState extends State<PanoramaView> {
               );
             }).toList(),
             child: Image.file(currentImage!.image),
-            onViewChanged: (longitude, latitude, tilt) {
-              setState(() {
-                currentLongitude = longitude;
-                currentLatitude = latitude;
-              });
-            },
             onImageLoad: () {
-              setState(() {
-                _selectedIndex = 0;
-              });
+              if (!_isFirstLoad) {
+                _isFirstLoad = true;
+                setState(() {
+                  _selectedIndex = 0;
+                });
+              }
             },
           ),
           if (selectedMarker != null)
