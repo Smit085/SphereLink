@@ -20,8 +20,8 @@ class MarkerData {
       required this.selectedAction,
       required this.longitude,
       required this.latitude,
-      required this.selectedIconColor,
       required this.nextImageId,
+      required this.selectedIconColor,
       this.label = "",
       this.selectedIcon = Icons.location_pin,
       this.bannerImage,
@@ -34,12 +34,11 @@ class MarkerData {
       "latitude": latitude,
       "label": label,
       "description": description,
-      "selectedIcon":
-          selectedIcon.codePoint, // Store the IconData as its codePoint
-      "selectedIconColor": selectedIconColor.value, // Store color as an integer
+      "selectedIcon": selectedIcon.codePoint,
+      "selectedIconColor": selectedIconColor.value,
       "nextImageId": nextImageId,
       "selectedAction": selectedAction,
-      "bannerImage": bannerImage?.path, // Store file path if bannerImage exists
+      "bannerImage": bannerImage?.path,
       "link": link,
     };
   }

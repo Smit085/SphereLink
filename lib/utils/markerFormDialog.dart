@@ -67,29 +67,35 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   final ImagePicker _picker = ImagePicker();
 
   static const Map<String, ({IconData icon, Color color})> markerOptions = {
-    "location": (icon: Icons.location_on, color: Colors.red),
-    "adjust": (icon: Icons.adjust, color: Colors.white),
-    "arrowUp": (icon: Icons.arrow_circle_up_outlined, color: Colors.white10),
+    "location": (icon: Icons.location_on, color: Colors.transparent),
+    "adjust": (icon: Icons.adjust, color: Colors.transparent),
+    "arrowUp": (
+      icon: Icons.arrow_circle_up_outlined,
+      color: Colors.transparent
+    ),
     "arrowdown": (
       icon: Icons.arrow_circle_down_outlined,
-      color: Colors.white10
+      color: Colors.transparent
     ),
     "assistantright": (
       icon: Icons.assistant_direction_outlined,
-      color: Colors.white10
+      color: Colors.transparent
     ),
-    "flag": (icon: Icons.flag, color: Colors.white10),
-    "danger": (icon: Icons.dangerous, color: Colors.blue),
-    "block": (icon: Icons.block, color: Colors.red),
-    "info": (icon: Icons.info, color: Colors.blue),
-    "announcement": (icon: Icons.announcement_outlined, color: Colors.blue),
-    "cart": (icon: Icons.shopping_cart, color: Colors.orange),
-    "shopping": (icon: Icons.shopping_bag, color: Colors.orange),
-    "restaurant": (icon: Icons.restaurant, color: Colors.red),
-    "hotel": (icon: Icons.hotel, color: Colors.purple),
-    "parking": (icon: Icons.local_parking, color: Colors.blue),
-    "target": (icon: Icons.api_sharp, color: Colors.red),
-    "architecture": (icon: Icons.architecture, color: Colors.red),
+    "flag": (icon: Icons.flag, color: Colors.transparent),
+    "danger": (icon: Icons.dangerous, color: Colors.transparent),
+    "block": (icon: Icons.block, color: Colors.transparent),
+    "info": (icon: Icons.info, color: Colors.transparent),
+    "announcement": (
+      icon: Icons.announcement_outlined,
+      color: Colors.transparent
+    ),
+    "cart": (icon: Icons.shopping_cart, color: Colors.transparent),
+    "shopping": (icon: Icons.shopping_bag, color: Colors.transparent),
+    "restaurant": (icon: Icons.restaurant, color: Colors.transparent),
+    "hotel": (icon: Icons.hotel, color: Colors.transparent),
+    "parking": (icon: Icons.local_parking, color: Colors.transparent),
+    "target": (icon: Icons.api_sharp, color: Colors.transparent),
+    "architecture": (icon: Icons.architecture, color: Colors.transparent),
   };
 
   @override
@@ -97,7 +103,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     super.initState();
     final initialData = widget.initialData;
     _selectedIcon = initialData?.selectedIcon ?? Icons.location_on;
-    _selectedIconColor = initialData?.selectedIconColor ?? Colors.red;
+    _selectedIconColor = initialData?.selectedIconColor ?? Colors.blueAccent;
     _selectedNextImageName = initialData?.nextImageId.toString() ?? '';
     _selectedAction = actionOptions.firstWhere(
       (action) =>
