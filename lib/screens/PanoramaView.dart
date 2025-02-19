@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:custom_radio_grouped_button/custom_radio_grouped_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
+import 'package:tuple/tuple.dart';
 
 import '../data/MarkerData.dart';
 import '../data/PanoramaImage.dart';
@@ -27,6 +29,14 @@ class _PanoramaViewState extends State<PanoramaView> {
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
   bool _isPreviewListOpen = true;
+  bool _isSettingsOpen = false;
+  late bool _isAnimationEnable = false;
+  late bool _showHotspots = true;
+  late bool _isBgMusicEnable = false;
+  List<String> interactionMode = ["Touch"];
+  String viewModes = "Phone";
+  double iconOpacity = 1;
+  double _animationSpeed = 1;
 
   void initializeView() {
     panoramaImages = widget.view.panoramaImages;
@@ -70,38 +80,48 @@ class _PanoramaViewState extends State<PanoramaView> {
       body: Stack(
         children: [
           PanoramaViewer(
+            key: ValueKey(Tuple3(_animationSpeed, _isAnimationEnable,
+                interactionMode.toString())),
+            animSpeed: _isAnimationEnable ? _animationSpeed : 0,
             animReverse: true,
             sensitivity: 1.8,
+            interactive: interactionMode.contains("Touch") ? true : false,
+            sensorControl: interactionMode.contains("Gyro")
+                ? SensorControl.absoluteOrientation
+                : SensorControl.none,
             hotspots: currentImage?.markers.map((marker) {
               return Hotspot(
                 longitude: marker.longitude,
                 latitude: marker.latitude,
                 name: marker.label,
-                widget: RippleWaveIcon(
-                  icon: marker.selectedIcon,
-                  rippleColor: marker.selectedIconColor,
-                  iconSize: 32, // max: 32
-                  iconColor: marker.selectedIconColor,
-                  rippleDuration: const Duration(seconds: 3),
-                  onTap: () {
-                    switch (marker.selectedAction) {
-                      case "Navigation":
-                        setState(() {
-                          _selectedIndex = null;
-                          currentImageId = marker.nextImageId;
-                        });
-                      case "Label":
-                        setState(() {
-                          _selectedIndex = null;
-                        });
-                        _showMarkerLabel(marker);
-                      case "Banner":
-                        setState(() {
-                          _selectedIndex = null;
-                        });
-                        _showMarkerLabel(marker);
-                    }
-                  },
+                widget: Opacity(
+                  opacity: iconOpacity,
+                  child: RippleWaveIcon(
+                    icon: marker.selectedIcon,
+                    rippleColor: marker.selectedIconColor,
+                    iconSize: 32, // max: 32
+                    iconColor: marker.selectedIconColor,
+                    rippleDuration: const Duration(seconds: 3),
+                    onTap: () {
+                      switch (marker.selectedAction) {
+                        case "Navigation":
+                          setState(() {
+                            _selectedIndex = null;
+                            currentImageId = marker.nextImageId;
+                          });
+                        case "Label":
+                          setState(() {
+                            _selectedIndex = null;
+                          });
+                          _showMarkerLabel(marker);
+                        case "Banner":
+                          setState(() {
+                            _selectedIndex = null;
+                          });
+                          _showMarkerLabel(marker);
+                      }
+                    },
+                  ),
                 ),
               );
             }).toList(),
@@ -113,6 +133,11 @@ class _PanoramaViewState extends State<PanoramaView> {
                   _selectedIndex = 0;
                 });
               }
+            },
+            onTap: (longitude, latitude, tilt) => {
+              setState(() {
+                _isSettingsOpen = false;
+              })
             },
           ),
           if (selectedMarker != null)
@@ -231,6 +256,70 @@ class _PanoramaViewState extends State<PanoramaView> {
           Stack(
             alignment: Alignment.bottomCenter,
             children: [
+              Positioned(
+                top: 20,
+                left: 12,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.appsecondaryColor,
+                      borderRadius: BorderRadius.circular(45),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 5,
+                          spreadRadius: 1,
+                        )
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 20,
+                right: 12,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isSettingsOpen = !_isSettingsOpen;
+                    });
+                  },
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.appsecondaryColor,
+                      borderRadius: BorderRadius.circular(45),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 5,
+                          spreadRadius: 1,
+                        )
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.menu_rounded,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeInOut,
@@ -248,30 +337,13 @@ class _PanoramaViewState extends State<PanoramaView> {
                         decoration: const BoxDecoration(color: Colors.black45),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 5, vertical: 5),
-                        child: ReorderableListView(
-                          proxyDecorator: (Widget child, int index,
-                              Animation<double> animation) {
-                            return Material(
-                              color: Colors.transparent,
-                              child: child,
-                            );
-                          },
+                        child: ListView(
                           scrollDirection: Axis.horizontal,
-                          onReorder: (oldIndex, newIndex) {
-                            setState(() {
-                              if (newIndex > oldIndex) {
-                                newIndex -= 1;
-                              }
-                              final item = panoramaImages.removeAt(oldIndex);
-                              panoramaImages.insert(newIndex, item);
-                            });
-                          },
                           children: [
                             for (int index = 0;
                                 index < panoramaImages.length;
                                 index++)
                               GestureDetector(
-                                key: Key('$index'),
                                 onTap: () {
                                   setState(() {
                                     currentImageId = index;
@@ -312,8 +384,7 @@ class _PanoramaViewState extends State<PanoramaView> {
                                         left: 5,
                                         child: Container(
                                           constraints: const BoxConstraints(
-                                            maxWidth: 100,
-                                          ),
+                                              maxWidth: 100),
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 6, vertical: 4),
                                           decoration: BoxDecoration(
@@ -458,6 +529,323 @@ class _PanoramaViewState extends State<PanoramaView> {
                             : Colors.white12,
                         size: 30,
                       ),
+                    ),
+                  ),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+                right: _isSettingsOpen ? 0 : -270,
+                bottom: 0,
+                top: 0,
+                child: AnimatedContainer(
+                  color: AppColors.appprimaryColor,
+                  duration: const Duration(milliseconds: 300),
+                  width: 270,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isSettingsOpen = !_isSettingsOpen;
+                                });
+                              },
+                              child: const Center(
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  color: Colors.teal,
+                                  size: 25,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 4,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                "Show Animation",
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Switch(
+                              padding: const EdgeInsets.all(0),
+                              value: _isAnimationEnable,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  _isAnimationEnable = value;
+                                  if (_isAnimationEnable) {
+                                    _animationSpeed = 1.0;
+                                  } else {
+                                    _animationSpeed = 0.0;
+                                  }
+                                });
+                              },
+                              activeColor: Colors.white,
+                              activeTrackColor: Colors.white.withOpacity(0.8),
+                              inactiveThumbColor: Colors.grey,
+                              inactiveTrackColor: Colors.grey.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                        if (_isAnimationEnable) ...[
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "Animation Speed: ",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                "${(_animationSpeed).toInt()}x",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 2.0,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 8,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 0,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: _animationSpeed,
+                                  min: 1,
+                                  max: 100,
+                                  divisions: 100,
+                                  label: "${(_animationSpeed).toInt()}",
+                                  onChanged: (double newValue) {
+                                    setState(() {
+                                      _animationSpeed = newValue;
+                                    });
+                                  },
+                                  activeColor: Colors.teal,
+                                  inactiveColor: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                "Show Hotspot",
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Switch(
+                              padding: const EdgeInsets.all(0),
+                              value: _showHotspots,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  iconOpacity = (value == false) ? 0 : 1;
+                                  _showHotspots = value;
+                                });
+                              },
+                              activeColor: Colors.white,
+                              activeTrackColor: Colors.white.withOpacity(0.8),
+                              inactiveThumbColor: Colors.grey,
+                              inactiveTrackColor: Colors.grey.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                        if (_showHotspots) ...[
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "Icon Opacity: ",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                "${(iconOpacity * 100).toInt()}%",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 2.0,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 8,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 0,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: iconOpacity,
+                                  min: 0.1,
+                                  max: 1.0,
+                                  divisions: 100,
+                                  label: "${(iconOpacity * 100).toInt()}%",
+                                  onChanged: (double newValue) {
+                                    setState(() {
+                                      iconOpacity = newValue;
+                                    });
+                                  },
+                                  activeColor: Colors.teal,
+                                  inactiveColor: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                "Background Music",
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Switch(
+                              padding: const EdgeInsets.all(0),
+                              value: _isBgMusicEnable,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  _isBgMusicEnable = value;
+                                });
+                              },
+                              activeColor: Colors.white,
+                              activeTrackColor: Colors.white.withOpacity(0.8),
+                              inactiveThumbColor: Colors.grey,
+                              inactiveTrackColor: Colors.grey.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "Interaction Mode:",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            CustomCheckBoxGroup(
+                              autoWidth: true,
+                              buttonLables: const ["Gyro", "Touch"],
+                              buttonValuesList: const ["Gyro", "Touch"],
+                              checkBoxButtonValues: (values) {
+                                setState(() {
+                                  interactionMode = List<String>.from(values);
+                                });
+                              },
+                              defaultSelected: interactionMode,
+                              enableShape: true,
+                              customShape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              selectedColor: Colors.teal,
+                              unSelectedColor: Colors.grey.shade800,
+                              selectedBorderColor: Colors.tealAccent,
+                              unSelectedBorderColor: Colors.grey.shade600,
+                              buttonTextStyle: const ButtonTextStyle(
+                                selectedColor: Colors.white,
+                                unSelectedColor: Colors.white70,
+                                textStyle: TextStyle(fontSize: 14),
+                              ),
+                              padding: 10,
+                              margin: EdgeInsets.only(right: 10, top: 10),
+                              elevation: 4,
+                              horizontal: false,
+                              height: 22,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "Play as:",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            CustomRadioButton(
+                              autoWidth: true,
+                              buttonLables: const ["VR", "Phone"],
+                              buttonValues: const ["VR", "Phone"],
+                              radioButtonValue: (values) {
+                                setState(() {
+                                  viewModes = values;
+                                });
+                              },
+                              defaultSelected: viewModes,
+                              enableShape: true,
+                              customShape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              selectedColor: Colors.teal,
+                              unSelectedColor: Colors.grey.shade800,
+                              selectedBorderColor: Colors.tealAccent,
+                              unSelectedBorderColor: Colors.grey.shade600,
+                              buttonTextStyle: const ButtonTextStyle(
+                                selectedColor: Colors.white,
+                                unSelectedColor: Colors.white70,
+                                textStyle: TextStyle(fontSize: 14),
+                              ),
+                              padding: 10,
+                              margin: EdgeInsets.only(right: 10, top: 10),
+                              elevation: 4,
+                              horizontal: false,
+                              height: 22,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
