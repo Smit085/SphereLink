@@ -11,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:spherelink/screens/PanoramaPreview.dart';
 import 'package:tuple/tuple.dart';
 import 'package:spherelink/utils/mergeImages.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
@@ -22,6 +23,7 @@ import '../data/ViewData.dart';
 import '../utils/appColors.dart';
 import '../utils/markerFormDialog.dart';
 import '../utils/nipPainter.dart';
+import 'PanoramaView.dart';
 
 class PanoramicWithMarkers extends StatefulWidget {
   const PanoramicWithMarkers({super.key});
@@ -51,7 +53,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   late List<PanoramaImage> panoramaImages = [];
   final ImagePicker _imagePicker = ImagePicker();
 
-  List<ViewData> savedViews = [];
+  // List<ViewData> savedViews = [];
 
   @override
   void initState() {
@@ -101,7 +103,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     await file.writeAsString(jsonEncode(newView.toJson()));
 
     setState(() {
-      savedViews.add(newView);
       panoramaImages = [];
       _isLoading = false;
     });
@@ -494,45 +495,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 ),
               ),
             ),
-          if (panoramaImages.isNotEmpty)
-            Positioned(
-              bottom: 100,
-              left: 12,
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _isLoading = true;
-                  });
-                  _showSaveDialog();
-                },
-                style: ElevatedButton.styleFrom(
-                  fixedSize: const Size(115, 12),
-                  backgroundColor: Colors.lightBlueAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5.0),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 5),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 25,
-                        height: 25,
-                        child: CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                          color: Colors.blue,
-                          strokeWidth:
-                              3, // Adjust the thickness of the indicator
-                          backgroundColor: Colors.blue,
-                        ),
-                      )
-                    : const Text(
-                        'Save',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-              ),
-            ),
           if (selectedMarker != null)
             Positioned(
               left: MediaQuery.of(context).orientation == Orientation.landscape
@@ -753,45 +715,94 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 ),
               ),
             ),
-            Positioned(
-              top: 20,
-              right: 12,
-              child: GestureDetector(
-                onTap: () {
-                  // SideSheet.right(
-                  //     sheetColor: AppColors.appprimaryColor,
-                  //     transitionDuration: const Duration(milliseconds: 350),
-                  //     body: viewsSettings(),
-                  //     width: 270,
-                  //     context: context);
-                  setState(() {
-                    _isSettingsOpen = !_isSettingsOpen;
-                  });
-                },
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.appsecondaryColor,
-                    borderRadius: BorderRadius.circular(45),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 5,
-                        spreadRadius: 1,
-                      )
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.menu_rounded,
-                      color: Colors.white70,
-                      size: 20,
+            if (panoramaImages.isNotEmpty)
+              Positioned(
+                top: 20,
+                right: 12,
+                child: Row(
+                  spacing: 6,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isLoading = true;
+                        });
+                        _showSaveDialog();
+                      },
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.appsecondaryColor,
+                          borderRadius: BorderRadius.circular(45),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 5,
+                              spreadRadius: 1,
+                            )
+                          ],
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                  color: Colors.blue,
+                                  strokeWidth:
+                                      2, // Adjust the thickness of the indicator
+                                  backgroundColor: Colors.blue,
+                                ),
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.save_rounded,
+                                  color: Colors.white70,
+                                  size: 20,
+                                ),
+                              ),
+                      ),
                     ),
-                  ),
+                    GestureDetector(
+                      onTap: () {
+                        final newView = ViewData(
+                          panoramaImages: panoramaImages,
+                          viewName: "",
+                          thumbnailImage: File(""),
+                          dateTime: DateTime.now(),
+                        );
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    PanoramaPreview(view: newView)));
+                      },
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.appsecondaryColor,
+                          borderRadius: BorderRadius.circular(45),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 5,
+                              spreadRadius: 1,
+                            )
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.remove_red_eye_rounded,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    )
+                  ],
                 ),
               ),
-            ),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 500),
               curve: Curves.easeInOut,
@@ -1155,322 +1166,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                           : Colors.white12,
                       size: 30,
                     ),
-                  ),
-                ),
-              ),
-            ),
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOut,
-              right: _isSettingsOpen ? 0 : -270,
-              bottom: 0,
-              top: 0,
-              child: AnimatedContainer(
-                color: AppColors.appprimaryColor,
-                duration: const Duration(milliseconds: 300),
-                width: 270,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isSettingsOpen = !_isSettingsOpen;
-                              });
-                            },
-                            child: const Center(
-                              child: Icon(
-                                Icons.close_rounded,
-                                color: Colors.teal,
-                                size: 25,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 4,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              "Show Animation",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Switch(
-                            padding: const EdgeInsets.all(0),
-                            value: _isAnimationEnable,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _isAnimationEnable = value;
-                                if (_isAnimationEnable) {
-                                  _animationSpeed = 1.0;
-                                } else {
-                                  _animationSpeed = 0.0;
-                                }
-                              });
-                            },
-                            activeColor: Colors.white,
-                            activeTrackColor: Colors.white.withOpacity(0.8),
-                            inactiveThumbColor: Colors.grey,
-                            inactiveTrackColor: Colors.grey.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
-                      if (_isAnimationEnable) ...[
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              "Animation Speed: ",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              "${(_animationSpeed).toInt()}x",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 2.0,
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 8,
-                                ),
-                                overlayShape: const RoundSliderOverlayShape(
-                                  overlayRadius: 0,
-                                ),
-                              ),
-                              child: Slider(
-                                value: _animationSpeed,
-                                min: 1,
-                                max: 100,
-                                divisions: 100,
-                                label: "${(_animationSpeed).toInt()}",
-                                onChanged: (double newValue) {
-                                  setState(() {
-                                    _animationSpeed = newValue;
-                                  });
-                                },
-                                activeColor: Colors.teal,
-                                inactiveColor: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              "Show Hotspot",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Switch(
-                            padding: const EdgeInsets.all(0),
-                            value: _showHotspots,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _showHotspots = value;
-                              });
-                            },
-                            activeColor: Colors.white,
-                            activeTrackColor: Colors.white.withOpacity(0.8),
-                            inactiveThumbColor: Colors.grey,
-                            inactiveTrackColor: Colors.grey.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
-                      if (_showHotspots) ...[
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              "Icon Opacity: ",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              "${(iconOpacity * 100).toInt()}%",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 2.0,
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 8,
-                                ),
-                                overlayShape: const RoundSliderOverlayShape(
-                                  overlayRadius: 0,
-                                ),
-                              ),
-                              child: Slider(
-                                value: iconOpacity,
-                                min: 0.0,
-                                max: 1.0,
-                                divisions: 100,
-                                label: "${(iconOpacity * 100).toInt()}%",
-                                onChanged: (double newValue) {
-                                  setState(() {
-                                    iconOpacity = newValue;
-                                  });
-                                },
-                                activeColor: Colors.teal,
-                                inactiveColor: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              "Background Music",
-                              style:
-                                  TextStyle(fontSize: 16, color: Colors.white),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Switch(
-                            padding: const EdgeInsets.all(0),
-                            value: _isBgMusicEnable,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _isBgMusicEnable = value;
-                              });
-                            },
-                            activeColor: Colors.white,
-                            activeTrackColor: Colors.white.withOpacity(0.8),
-                            inactiveThumbColor: Colors.grey,
-                            inactiveTrackColor: Colors.grey.withOpacity(0.5),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Interaction Mode:",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          CustomCheckBoxGroup(
-                            autoWidth: true,
-                            buttonLables: const ["Gyro", "Touch"],
-                            buttonValuesList: const ["Gyro", "Touch"],
-                            checkBoxButtonValues: (values) {
-                              setState(() {
-                                interactionMode = List<String>.from(values);
-                              });
-                            },
-                            defaultSelected: interactionMode,
-                            enableShape: true,
-                            customShape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            selectedColor: Colors.teal,
-                            unSelectedColor: Colors.grey.shade800,
-                            selectedBorderColor: Colors.tealAccent,
-                            unSelectedBorderColor: Colors.grey.shade600,
-                            buttonTextStyle: const ButtonTextStyle(
-                              selectedColor: Colors.white,
-                              unSelectedColor: Colors.white70,
-                              textStyle: TextStyle(fontSize: 14),
-                            ),
-                            padding: 10,
-                            margin: EdgeInsets.only(right: 10, top: 10),
-                            elevation: 4,
-                            horizontal: false,
-                            height: 22,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Play as:",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          CustomRadioButton(
-                            autoWidth: true,
-                            buttonLables: const ["VR", "Phone"],
-                            buttonValues: const ["VR", "Phone"],
-                            radioButtonValue: (values) {
-                              setState(() {
-                                viewModes = values;
-                              });
-                            },
-                            defaultSelected: viewModes,
-                            enableShape: true,
-                            customShape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            selectedColor: Colors.teal,
-                            unSelectedColor: Colors.grey.shade800,
-                            selectedBorderColor: Colors.tealAccent,
-                            unSelectedBorderColor: Colors.grey.shade600,
-                            buttonTextStyle: const ButtonTextStyle(
-                              selectedColor: Colors.white,
-                              unSelectedColor: Colors.white70,
-                              textStyle: TextStyle(fontSize: 14),
-                            ),
-                            padding: 10,
-                            margin: EdgeInsets.only(right: 10, top: 10),
-                            elevation: 4,
-                            horizontal: false,
-                            height: 22,
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
                 ),
               ),
