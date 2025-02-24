@@ -103,31 +103,37 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                 name: marker.label,
                 widget: Opacity(
                   opacity: iconOpacity,
-                  child: RippleWaveIcon(
-                    icon: marker.selectedIcon,
-                    rippleColor: marker.selectedIconColor,
-                    iconSize: 32, // max: 32
-                    iconColor: marker.selectedIconColor,
-                    rippleDuration: const Duration(seconds: 3),
-                    onTap: () {
-                      switch (marker.selectedAction) {
-                        case "Navigation":
-                          setState(() {
-                            _selectedIndex = null;
-                            currentImageId = marker.nextImageId;
-                          });
-                        case "Label":
-                          setState(() {
-                            _selectedIndex = null;
-                          });
-                          _showMarkerLabel(marker);
-                        case "Banner":
-                          setState(() {
-                            _selectedIndex = null;
-                          });
-                          _showMarkerLabel(marker);
-                      }
-                    },
+                  child: Transform(
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001) // Perspective
+                      ..rotateX(math.pi / 3), // Rotate around X-axis
+                    alignment: Alignment.center,
+                    child: RippleWaveIcon(
+                      icon: marker.selectedIcon,
+                      rippleColor: marker.selectedIconColor,
+                      iconSize: 32, // max: 32
+                      iconColor: marker.selectedIconColor,
+                      rippleDuration: const Duration(seconds: 3),
+                      onTap: () {
+                        switch (marker.selectedAction) {
+                          case "Navigation":
+                            setState(() {
+                              _selectedIndex = null;
+                              currentImageId = marker.nextImageId;
+                            });
+                          case "Label":
+                            setState(() {
+                              _selectedIndex = null;
+                            });
+                            _showMarkerLabel(marker);
+                          case "Banner":
+                            setState(() {
+                              _selectedIndex = null;
+                            });
+                            _showMarkerLabel(marker);
+                        }
+                      },
+                    ),
                   ),
                 ),
               );
@@ -960,10 +966,12 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
     final file = File(jsonPath);
     await file.writeAsString(jsonEncode(newView.toJson()));
 
-    setState(() {
-      panoramaImages = [];
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        panoramaImages = [];
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _showSaveDialog() async {
@@ -1002,6 +1010,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                 }
                 showCustomSnackBar(context, Colors.green,
                     "New view created successfully.", Colors.white, "", null);
+                Navigator.of(context).pop();
                 Navigator.of(context).pop();
               },
               child: Text("Save"),

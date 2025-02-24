@@ -8,6 +8,7 @@ class MarkerData {
   double latitude;
   String label;
   String description;
+  String selectedIconStyle;
   IconData selectedIcon;
   Color selectedIconColor;
   int nextImageId;
@@ -22,6 +23,7 @@ class MarkerData {
       required this.latitude,
       required this.nextImageId,
       required this.selectedIconColor,
+      required this.selectedIconStyle,
       this.label = "",
       this.selectedIcon = Icons.location_pin,
       this.bannerImage,
@@ -35,6 +37,7 @@ class MarkerData {
       "label": label,
       "description": description,
       "selectedIcon": selectedIcon.codePoint,
+      "selectedIconStyle": selectedIconStyle,
       "selectedIconColor": selectedIconColor.value,
       "nextImageId": nextImageId,
       "selectedAction": selectedAction,
@@ -50,6 +53,7 @@ class MarkerData {
       latitude: json["latitude"],
       label: json["label"],
       description: json["description"],
+      selectedIconStyle: json["selectedIconStyle"],
       selectedIcon: IconData(json["selectedIcon"], fontFamily: 'MaterialIcons'),
       selectedIconColor: Color(json["selectedIconColor"]),
       nextImageId: json["nextImageId"],

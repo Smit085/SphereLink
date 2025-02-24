@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final viewsDir = Directory('${directory.path}/views');
     if (!await viewsDir.exists()) {
       print("Views directory does not exist");
-      return;
+      await viewsDir.create(recursive: true);
     }
 
     final files = viewsDir.listSync();

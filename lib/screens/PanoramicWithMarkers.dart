@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'package:custom_radio_grouped_button/custom_radio_grouped_button.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -102,10 +101,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     final file = File(jsonPath);
     await file.writeAsString(jsonEncode(newView.toJson()));
 
-    setState(() {
-      panoramaImages = [];
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        panoramaImages = [];
+        _isLoading = false;
+      });
+    }
   }
 
   Future<String> _compressAndSaveThumbnail(
@@ -165,7 +166,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 }
                 showCustomSnackBar(context, Colors.green,
                     "New view created successfully.", Colors.white, "", null);
-                Navigator.of(context).pop();
+                Navigator.pop(context, true);
               },
               child: Text("Save"),
             ),
@@ -198,6 +199,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     latitude: latitude,
                     label: data.label,
                     selectedIcon: data.selectedIcon,
+                    selectedIconStyle: data.selectedIconStyle,
                     nextImageId: data.nextImageId,
                     selectedIconColor: data.selectedIconColor,
                     selectedAction: data.selectedAction,
@@ -226,6 +228,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
             setState(() {
               selectedMarker?.selectedAction = updatedMarkerData.selectedAction;
               selectedMarker?.selectedIcon = updatedMarkerData.selectedIcon;
+              selectedMarker?.selectedIconStyle =
+                  updatedMarkerData.selectedIconStyle;
               selectedMarker?.selectedIconColor =
                   updatedMarkerData.selectedIconColor;
               selectedMarker?.label = updatedMarkerData.label;
