@@ -35,7 +35,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
   MarkerData? selectedMarker;
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
-  bool _isPreviewListOpen = true;
+  bool _isPreviewListOpen = false;
   bool _isSettingsOpen = false;
   late bool _isAnimationEnable = false;
   late bool _showHotspots = true;
@@ -126,18 +126,12 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                         switch (marker.selectedAction) {
                           case "Navigation":
                             setState(() {
-                              _selectedIndex = null;
-                              currentImageId = marker.nextImageId;
+                              _selectedIndex =
+                                  currentImageId = marker.nextImageId;
                             });
                           case "Label":
-                            setState(() {
-                              _selectedIndex = null;
-                            });
                             _showMarkerLabel(marker);
                           case "Banner":
-                            setState(() {
-                              _selectedIndex = null;
-                            });
                             _showMarkerLabel(marker);
                         }
                       },

@@ -119,18 +119,12 @@ class _PanoramaViewState extends State<PanoramaView> {
                         switch (marker.selectedAction) {
                           case "Navigation":
                             setState(() {
-                              _selectedIndex = null;
-                              currentImageId = marker.nextImageId;
+                              _selectedIndex =
+                                  currentImageId = marker.nextImageId;
                             });
                           case "Label":
-                            setState(() {
-                              _selectedIndex = null;
-                            });
                             _showMarkerLabel(marker);
                           case "Banner":
-                            setState(() {
-                              _selectedIndex = null;
-                            });
                             _showMarkerLabel(marker);
                         }
                       },

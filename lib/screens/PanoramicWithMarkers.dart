@@ -33,13 +33,14 @@ class PanoramicWithMarkers extends StatefulWidget {
 
 class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   final _newImageNameController = TextEditingController();
+  bool _isFirstLoad = false;
   int? _selectedIndex;
   MarkerData? selectedMarker;
   double currentLongitude = 0.0;
   double currentLatitude = 0.0;
   int currentImageId = 0;
   bool _isLoading = false;
-  bool _isPreviewListOpen = false;
+  bool _isPreviewListOpen = true;
   bool _isSettingsOpen = false;
   late bool _isAnimationEnable = false;
   late bool _showHotspots = true;
@@ -450,6 +451,14 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 );
               }).toList(),
               child: Image.file(currentImage!.image),
+              onImageLoad: () {
+                if (!_isFirstLoad) {
+                  _isFirstLoad = true;
+                  setState(() {
+                    _selectedIndex = 0;
+                  });
+                }
+              },
               onViewChanged: (longitude, latitude, tilt) {
                 setState(() {
                   currentLongitude = longitude;
@@ -885,8 +894,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(2),
                                         child: SizedBox(
-                                          width: 150,
-                                          height: 100,
+                                          width: 120,
                                           child: Image.file(
                                             panoramaImages[index].image,
                                             fit: BoxFit.cover,
@@ -972,12 +980,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                                     const EdgeInsets.all(4),
                                                 child: const Icon(
                                                   Icons.edit,
-                                                  size: 20,
+                                                  size: 15,
                                                   color: Colors.white,
                                                 ),
                                               ),
                                             ),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(width: 4),
                                             GestureDetector(
                                               onTap: () {
                                                 setState(() {
@@ -996,7 +1004,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                                     const EdgeInsets.all(4),
                                                 child: const Icon(
                                                   Icons.delete,
-                                                  size: 20,
+                                                  size: 15,
                                                   color: Colors.white,
                                                 ),
                                               ),
@@ -1047,7 +1055,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Container(
-                                width: 150,
+                                width: 120,
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(4),
@@ -1055,7 +1063,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                 child: const Center(
                                   child: Icon(
                                     Icons.add_circle_outline,
-                                    size: 40,
+                                    size: 30,
                                     color: Colors.white,
                                   ),
                                 ),
