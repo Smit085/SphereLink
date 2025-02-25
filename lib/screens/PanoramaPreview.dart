@@ -42,6 +42,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
   late bool _isBgMusicEnable = false;
   List<String> interactionMode = ["Touch"];
   String viewModes = "Phone";
+  String iconSize = "M";
   double iconOpacity = 1;
   double _animationSpeed = 1;
 
@@ -114,7 +115,11 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                     child: RippleWaveIcon(
                       icon: marker.selectedIcon,
                       rippleColor: marker.selectedIconColor,
-                      iconSize: 32, // max: 32
+                      iconSize: (iconSize == "S")
+                          ? 18
+                          : (iconSize == "M")
+                              ? 24
+                              : 32, // max: 32
                       iconColor: marker.selectedIconColor,
                       rippleDuration: const Duration(seconds: 3),
                       onTap: () {
@@ -798,6 +803,48 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                             ],
                           ),
                         ],
+                        const SizedBox(height: 10),
+                        const Text(
+                          "Icon Size:",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            CustomRadioButton(
+                              width: 50,
+                              buttonLables: const ["S", "M", "L"],
+                              buttonValues: const ["S", "M", "L"],
+                              radioButtonValue: (values) {
+                                setState(() {
+                                  iconSize = values;
+                                });
+                              },
+                              defaultSelected: iconSize,
+                              enableShape: true,
+                              customShape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              selectedColor: Colors.teal,
+                              unSelectedColor: Colors.grey.shade800,
+                              selectedBorderColor: Colors.tealAccent,
+                              unSelectedBorderColor: Colors.grey.shade600,
+                              buttonTextStyle: const ButtonTextStyle(
+                                selectedColor: Colors.white,
+                                unSelectedColor: Colors.white70,
+                                textStyle: TextStyle(fontSize: 14),
+                              ),
+                              padding: 10,
+                              margin: EdgeInsets.only(right: 10, top: 10),
+                              elevation: 4,
+                              horizontal: false,
+                              height: 22,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
