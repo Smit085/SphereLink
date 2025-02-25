@@ -446,36 +446,47 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
-    return GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PanoramicWithMarkers(),
-            ),
-          );
-        },
-        child: Center(
-          child: FittedBox(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  "assets/ic_panorama.png",
-                  width: 200,
-                  height: 200,
-                  fit: BoxFit.contain,
+    return RefreshIndicator(
+      onRefresh: _loadViews,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PanoramicWithMarkers(),
                 ),
-                Text(
-                  savedViews.isEmpty
-                      ? "No views found! Tap to create one."
-                      : "No matching views found.",
-                  style: const TextStyle(fontSize: 16),
+              );
+            },
+            child: Center(
+              child: FittedBox(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      "assets/ic_panorama.png",
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      savedViews.isEmpty
+                          ? "No views found! Tap to create one."
+                          : "No matching views found.",
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   Widget _buildListView() {
