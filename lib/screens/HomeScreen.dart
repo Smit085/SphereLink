@@ -35,11 +35,16 @@ class _HomeScreenState extends State<HomeScreen> {
       <MapEntry<String, List<ViewData>>>[];
   TextEditingController searchController = TextEditingController();
   final UserSettings _userSettings = UserSettings();
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
     super.initState();
     _loadViews();
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _refreshIndicatorKey.currentState?.show(); // Trigger on initial load
+    // });
     searchController.addListener(_onSearchChanged);
   }
 
@@ -126,6 +131,15 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 120,
             child: ListTile(
               title: Text(isListView ? 'Display in grid' : 'Display in list'),
+            ),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'refresh',
+          child: SizedBox(
+            width: 120,
+            child: ListTile(
+              title: Text("Refresh"),
             ),
           ),
         ),
@@ -235,6 +249,9 @@ class _HomeScreenState extends State<HomeScreen> {
             break;
           case 'display_view':
             toggleDisplayView();
+          case 'refresh':
+            _refreshIndicatorKey.currentState?.show();
+            _loadViews();
             break;
         }
         currentMenu = 'main';
@@ -294,30 +311,36 @@ class _HomeScreenState extends State<HomeScreen> {
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: TabBarView(
                       children: [
-                        isLoading
-                            ? isListView
-                                ? ListView.builder(
-                                    itemCount: 8,
-                                    itemBuilder: (context, index) =>
-                                        _buildShimmerTile(),
-                                  )
-                                : GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 15,
-                                      childAspectRatio: 3 / 2,
-                                    ),
-                                    itemCount: 10,
-                                    itemBuilder: (context, index) =>
-                                        _buildShimmerGridTile(),
-                                  )
-                            : filteredViews.isEmpty
-                                ? _buildEmptyState()
-                                : isListView
-                                    ? _buildListView()
-                                    : _buildGridView(),
+                        RefreshIndicator(
+                          key: _refreshIndicatorKey,
+                          onRefresh: _loadViews,
+                          backgroundColor: Colors.white,
+                          color: Colors.blue,
+                          child: isLoading
+                              ? isListView
+                                  ? ListView.builder(
+                                      itemCount: 8,
+                                      itemBuilder: (context, index) =>
+                                          _buildShimmerTile(),
+                                    )
+                                  : GridView.builder(
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 10,
+                                        mainAxisSpacing: 15,
+                                        childAspectRatio: 3 / 2,
+                                      ),
+                                      itemCount: 10,
+                                      itemBuilder: (context, index) =>
+                                          _buildShimmerGridTile(),
+                                    )
+                              : filteredViews.isEmpty
+                                  ? _buildEmptyState()
+                                  : isListView
+                                      ? _buildListView()
+                                      : _buildGridView(),
+                        ),
                         const Center(
                             child:
                                 Text("Published views will be displayed here")),
@@ -975,7 +998,7 @@ class _HomeScreenState extends State<HomeScreen> {
       view.viewName = newName;
       await newFile.writeAsString(jsonEncode(view.toJson()));
       setState(() {
-        _loadViews();
+        filteredViews = List.from(savedViews);
       });
     } else {
       showCustomSnackBar(context, Colors.redAccent, "Named already exists.",
