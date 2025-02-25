@@ -474,8 +474,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
+                      textAlign: TextAlign.center,
                       savedViews.isEmpty
-                          ? "No views found! Tap to create one."
+                          ? "No views found! Tap to create one\nor Refresh the page."
                           : "No matching views found.",
                       style: const TextStyle(fontSize: 16),
                     ),
