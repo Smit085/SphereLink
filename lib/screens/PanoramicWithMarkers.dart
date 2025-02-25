@@ -200,6 +200,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     label: data.label,
                     selectedIcon: data.selectedIcon,
                     selectedIconStyle: data.selectedIconStyle,
+                    selectedIconRotationRadians:
+                        data.selectedIconRotationRadians,
                     nextImageId: data.nextImageId,
                     selectedIconColor: data.selectedIconColor,
                     selectedAction: data.selectedAction,
@@ -230,6 +232,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
               selectedMarker?.selectedIcon = updatedMarkerData.selectedIcon;
               selectedMarker?.selectedIconStyle =
                   updatedMarkerData.selectedIconStyle;
+              selectedMarker?.selectedIconRotationRadians =
+                  updatedMarkerData.selectedIconRotationRadians;
               selectedMarker?.selectedIconColor =
                   updatedMarkerData.selectedIconColor;
               selectedMarker?.label = updatedMarkerData.label;
@@ -430,8 +434,16 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                             _showMarkerLabel(marker);
                         }
                       },
-                      icon: Icon(marker.selectedIcon,
-                          color: marker.selectedIconColor),
+                      icon: Transform(
+                        transform: (marker.selectedIconStyle == "Flat")
+                            ? (Matrix4.identity()
+                              ..rotateX(math.pi / 8)
+                              ..rotateZ(marker.selectedIconRotationRadians))
+                            : (Matrix4.identity()
+                              ..rotateZ(marker.selectedIconRotationRadians)),
+                        child: Icon(marker.selectedIcon,
+                            color: marker.selectedIconColor),
+                      ),
                       iconSize: 35,
                     ),
                   ),

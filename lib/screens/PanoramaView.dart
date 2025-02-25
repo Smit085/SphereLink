@@ -98,9 +98,12 @@ class _PanoramaViewState extends State<PanoramaView> {
                 widget: Opacity(
                   opacity: iconOpacity,
                   child: Transform(
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001) // Perspective
-                      ..rotateX(math.pi / 3), // Rotate around X-axis
+                    transform: (marker.selectedIconStyle == "Flat")
+                        ? (Matrix4.identity()
+                          ..rotateX(math.pi / 8)
+                          ..rotateZ(marker.selectedIconRotationRadians))
+                        : (Matrix4.identity()
+                          ..rotateZ(marker.selectedIconRotationRadians)),
                     alignment: Alignment.center,
                     child: RippleWaveIcon(
                       icon: marker.selectedIcon,

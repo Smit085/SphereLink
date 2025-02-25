@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:math' as math;
 import 'dart:io';
 
 import '../data/MarkerData.dart';
@@ -10,6 +11,7 @@ class MarkerFormData {
   IconData selectedIcon;
   Color selectedIconColor;
   String selectedIconStyle;
+  double selectedIconRotationRadians;
   String label;
   String description;
   int nextImageId;
@@ -25,6 +27,7 @@ class MarkerFormData {
     required this.description,
     required this.selectedAction,
     required this.selectedIconStyle,
+    required this.selectedIconRotationRadians,
     this.link,
     this.bannerImage,
   });
@@ -63,6 +66,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   late String? _selectedNextImageName;
   late (String, IconData) _selectedAction;
   late String _selectedIconStyle;
+  late double _selectedIconRotationRadians;
   final _labelController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _linkController = TextEditingController();
@@ -108,6 +112,8 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     final initialData = widget.initialData;
     _selectedIcon = initialData?.selectedIcon ?? Icons.location_on;
     _selectedIconStyle = initialData?.selectedIconStyle ?? iconStyleOptions[0];
+    _selectedIconRotationRadians =
+        initialData?.selectedIconRotationRadians ?? 0;
     _selectedIconColor = initialData?.selectedIconColor ?? Colors.blueAccent;
     _selectedNextImageName = initialData?.nextImageId.toString() ?? '';
     _selectedAction = actionOptions.firstWhere(
@@ -442,6 +448,48 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                         ],
                       ),
                       const SizedBox(height: 12),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Expanded(
+                              flex: 3,
+                              child: Text(
+                                "Rotation:",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              )),
+                          const Spacer(),
+                          SizedBox(
+                            width: 160,
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2.0,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 8,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 0,
+                                ),
+                              ),
+                              child: Slider(
+                                value: _selectedIconRotationRadians,
+                                min: 0,
+                                max: 2 * math.pi,
+                                divisions: 360,
+                                label:
+                                    "${(_selectedIconRotationRadians * 180 / math.pi).toInt()}",
+                                onChanged: (double newValue) {
+                                  setState(() {
+                                    _selectedIconRotationRadians = newValue;
+                                  });
+                                },
+                                activeColor: Colors.teal,
+                                inactiveColor: Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       _buildDynamicInputs(),
                     ],
                   ),
@@ -459,6 +507,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                     selectedAction: _selectedAction.$1,
                     selectedIcon: _selectedIcon,
                     selectedIconStyle: _selectedIconStyle,
+                    selectedIconRotationRadians: _selectedIconRotationRadians,
                     selectedIconColor: _selectedIconColor,
                     label: _labelController.text,
                     description: _descriptionController.text,

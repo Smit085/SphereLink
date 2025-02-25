@@ -12,6 +12,7 @@ class MarkerData {
   IconData selectedIcon;
   Color selectedIconColor;
   int nextImageId;
+  double selectedIconRotationRadians;
   String selectedAction;
   File? bannerImage;
   String? link;
@@ -24,6 +25,7 @@ class MarkerData {
       required this.nextImageId,
       required this.selectedIconColor,
       required this.selectedIconStyle,
+      required this.selectedIconRotationRadians,
       this.label = "",
       this.selectedIcon = Icons.location_pin,
       this.bannerImage,
@@ -38,6 +40,7 @@ class MarkerData {
       "description": description,
       "selectedIcon": selectedIcon.codePoint,
       "selectedIconStyle": selectedIconStyle,
+      "selectedIconRotationRadians": selectedIconRotationRadians,
       "selectedIconColor": selectedIconColor.value,
       "nextImageId": nextImageId,
       "selectedAction": selectedAction,
@@ -54,6 +57,7 @@ class MarkerData {
       label: json["label"],
       description: json["description"],
       selectedIconStyle: json["selectedIconStyle"],
+      selectedIconRotationRadians: json["selectedIconRotationRadians"],
       selectedIcon: IconData(json["selectedIcon"], fontFamily: 'MaterialIcons'),
       selectedIconColor: Color(json["selectedIconColor"]),
       nextImageId: json["nextImageId"],
