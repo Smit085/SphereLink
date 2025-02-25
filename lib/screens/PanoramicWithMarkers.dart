@@ -166,7 +166,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 }
                 showCustomSnackBar(context, Colors.green,
                     "New view created successfully.", Colors.white, "", null);
-                Navigator.pop(context, true);
+                Navigator.of(context).pop();
               },
               child: Text("Save"),
             ),
