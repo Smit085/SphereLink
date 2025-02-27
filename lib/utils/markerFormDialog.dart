@@ -75,7 +75,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   final ImagePicker _picker = ImagePicker();
 
   static const Map<String, ({IconData icon, Color color})> markerOptions = {
-    "location": (icon: Icons.location_on, color: Colors.transparent),
+    "location": (icon: Icons.location_pin, color: Colors.transparent),
     "adjust": (icon: Icons.adjust, color: Colors.transparent),
     "arrowUp": (
       icon: Icons.arrow_circle_up_outlined,
@@ -110,7 +110,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   void initState() {
     super.initState();
     final initialData = widget.initialData;
-    _selectedIcon = initialData?.selectedIcon ?? Icons.location_on;
+    _selectedIcon = initialData?.selectedIcon ?? Icons.location_pin;
     _selectedIconStyle = initialData?.selectedIconStyle ?? iconStyleOptions[0];
     _selectedIconRotationRadians =
         initialData?.selectedIconRotationRadians ?? 0;

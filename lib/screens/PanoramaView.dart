@@ -387,6 +387,40 @@ class _PanoramaViewState extends State<PanoramaView> {
                                           ),
                                         ),
                                       ),
+                                      if (panoramaImages[index]
+                                          .markers
+                                          .isNotEmpty)
+                                        Positioned(
+                                          top: 5,
+                                          right: 5,
+                                          child: Row(
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    panoramaImages
+                                                        .removeAt(index);
+                                                    _selectedIndex = null;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.red
+                                                        .withOpacity(0.7),
+                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  child: const Icon(
+                                                    Icons.location_on,
+                                                    size: 15,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       Positioned(
                                         bottom: 5,
                                         left: 5,
