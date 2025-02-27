@@ -498,33 +498,52 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                 ),
               )),
           actions: [
-            TextButton(
-              onPressed:
-                  widget.title == "Edit" ? widget.onDelete : widget.onCancel,
-              child: Text(widget.title == "Edit" ? "Delete" : "Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  widget.onSave(MarkerFormData(
-                    selectedAction: _selectedAction.$1,
-                    selectedIcon: _selectedIcon,
-                    selectedIconStyle: _selectedIconStyle,
-                    selectedIconRotationRadians: _selectedIconRotationRadians,
-                    selectedIconColor: _selectedIconColor,
-                    label: _labelController.text,
-                    description: _descriptionController.text,
-                    nextImageId:
-                        widget.imageNames.indexOf(_selectedNextImageName!),
-                    link: _linkController.text.isNotEmpty
-                        ? _linkController.text
-                        : null,
-                    bannerImage: _bannerImage,
-                  ));
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text("Save"),
+            Row(
+              mainAxisAlignment: widget.title == "Edit"
+                  ? MainAxisAlignment.spaceBetween
+                  : MainAxisAlignment.end,
+              children: [
+                if (widget.title == "Edit")
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("Cancel"),
+                  ),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: widget.title == "Edit"
+                          ? widget.onDelete
+                          : widget.onCancel,
+                      child: Text(widget.title == "Edit" ? "Delete" : "Cancel"),
+                    ),
+                    const SizedBox(width: 8), // Small spacing between buttons
+                    ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          widget.onSave(MarkerFormData(
+                            selectedAction: _selectedAction.$1,
+                            selectedIcon: _selectedIcon,
+                            selectedIconStyle: _selectedIconStyle,
+                            selectedIconRotationRadians:
+                                _selectedIconRotationRadians,
+                            selectedIconColor: _selectedIconColor,
+                            label: _labelController.text,
+                            description: _descriptionController.text,
+                            nextImageId: widget.imageNames
+                                .indexOf(_selectedNextImageName!),
+                            link: _linkController.text.isNotEmpty
+                                ? _linkController.text
+                                : null,
+                            bannerImage: _bannerImage,
+                          ));
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: const Text("Save"),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
