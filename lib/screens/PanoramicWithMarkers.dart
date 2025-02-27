@@ -398,80 +398,86 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       body: Stack(
         children: [
           if (panoramaImages.isNotEmpty)
-            PanoramaViewer(
-              key: ValueKey(Tuple3(_animationSpeed, _isAnimationEnable,
-                  interactionMode.toString())),
-              animSpeed: _isAnimationEnable ? _animationSpeed : 0,
-              animReverse: true,
-              sensitivity: 1.8,
-              interactive: interactionMode.contains("Touch") ? true : false,
-              sensorControl: interactionMode.contains("Gyro")
-                  ? SensorControl.absoluteOrientation
-                  : SensorControl.none,
-              hotspots: currentImage?.markers.map((marker) {
-                return Hotspot(
-                  longitude: marker.longitude,
-                  latitude: marker.latitude,
-                  name: marker.label,
-                  widget: Opacity(
-                    opacity: iconOpacity,
-                    child: IconButton(
-                      onPressed: () {
-                        switch (marker.selectedAction) {
-                          case "Navigation":
-                            setState(() {
-                              _selectedIndex = null;
-                              currentImageId = marker.nextImageId;
-                            });
-                          case "Label":
-                            setState(() {
-                              _selectedIndex = null;
-                            });
-                            _showMarkerLabel(marker);
-                          case "Banner":
-                            setState(() {
-                              _selectedIndex = null;
-                            });
-                            _showMarkerLabel(marker);
-                        }
-                      },
-                      icon: Transform(
-                        transform: (marker.selectedIconStyle == "Flat")
-                            ? (Matrix4.identity()
-                              ..rotateX(math.pi / 8)
-                              ..rotateZ(marker.selectedIconRotationRadians))
-                            : (Matrix4.identity()
-                              ..rotateZ(marker.selectedIconRotationRadians)),
-                        child: Icon(marker.selectedIcon,
-                            color: marker.selectedIconColor),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 800),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: PanoramaViewer(
+                key: ValueKey(Tuple4(_animationSpeed, _isAnimationEnable,
+                    interactionMode.toString(), currentImageId)),
+                animSpeed: _isAnimationEnable ? _animationSpeed : 0,
+                animReverse: true,
+                sensitivity: 1.8,
+                interactive: interactionMode.contains("Touch") ? true : false,
+                sensorControl: interactionMode.contains("Gyro")
+                    ? SensorControl.absoluteOrientation
+                    : SensorControl.none,
+                hotspots: currentImage?.markers.map((marker) {
+                  return Hotspot(
+                    longitude: marker.longitude,
+                    latitude: marker.latitude,
+                    name: marker.label,
+                    widget: Opacity(
+                      opacity: iconOpacity,
+                      child: IconButton(
+                        onPressed: () {
+                          switch (marker.selectedAction) {
+                            case "Navigation":
+                              setState(() {
+                                _selectedIndex = null;
+                                currentImageId = marker.nextImageId;
+                              });
+                            case "Label":
+                              setState(() {
+                                _selectedIndex = null;
+                              });
+                              _showMarkerLabel(marker);
+                            case "Banner":
+                              setState(() {
+                                _selectedIndex = null;
+                              });
+                              _showMarkerLabel(marker);
+                          }
+                        },
+                        icon: Transform(
+                          transform: (marker.selectedIconStyle == "Flat")
+                              ? (Matrix4.identity()
+                                ..rotateX(math.pi / 8)
+                                ..rotateZ(marker.selectedIconRotationRadians))
+                              : (Matrix4.identity()
+                                ..rotateZ(marker.selectedIconRotationRadians)),
+                          child: Icon(marker.selectedIcon,
+                              color: marker.selectedIconColor),
+                        ),
+                        iconSize: 35,
                       ),
-                      iconSize: 35,
                     ),
-                  ),
-                );
-              }).toList(),
-              child: Image.file(currentImage!.image),
-              onImageLoad: () {
-                if (!_isFirstLoad) {
-                  _isFirstLoad = true;
+                  );
+                }).toList(),
+                child: Image.file(currentImage!.image),
+                onImageLoad: () {
+                  if (!_isFirstLoad) {
+                    _isFirstLoad = true;
+                    setState(() {
+                      _selectedIndex = 0;
+                    });
+                  }
+                },
+                onViewChanged: (longitude, latitude, tilt) {
                   setState(() {
-                    _selectedIndex = 0;
+                    currentLongitude = longitude;
+                    currentLatitude = latitude;
                   });
-                }
-              },
-              onViewChanged: (longitude, latitude, tilt) {
-                setState(() {
-                  currentLongitude = longitude;
-                  currentLatitude = latitude;
-                });
-              },
-              onTap: (longitude, latitude, tilt) {
-                setState(() {
-                  currentLongitude = longitude;
-                  currentLatitude = latitude;
-                });
-                _addMarker(longitude, latitude);
-              },
+                },
+                onTap: (longitude, latitude, tilt) {
+                  setState(() {
+                    currentLongitude = longitude;
+                    currentLatitude = latitude;
+                  });
+                  _addMarker(longitude, latitude);
+                },
+              ),
             )
           else
             Center(

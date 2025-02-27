@@ -87,73 +87,79 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
       backgroundColor: AppColors.appprimaryBackgroundColor,
       body: Stack(
         children: [
-          PanoramaViewer(
-            key: ValueKey(Tuple3(_animationSpeed, _isAnimationEnable,
-                interactionMode.toString())),
-            animSpeed: _isAnimationEnable ? _animationSpeed : 0,
-            animReverse: true,
-            sensitivity: 1.8,
-            interactive: interactionMode.contains("Touch") ? true : false,
-            sensorControl: interactionMode.contains("Gyro")
-                ? SensorControl.absoluteOrientation
-                : SensorControl.none,
-            hotspots: currentImage?.markers.map((marker) {
-              return Hotspot(
-                longitude: marker.longitude,
-                latitude: marker.latitude,
-                name: marker.label,
-                widget: Opacity(
-                  opacity: iconOpacity,
-                  child: Transform(
-                    transform: (marker.selectedIconStyle == "Flat")
-                        ? (Matrix4.identity()
-                          ..rotateX(math.pi / 8)
-                          ..rotateZ(marker.selectedIconRotationRadians))
-                        : (Matrix4.identity()
-                          ..rotateZ(marker.selectedIconRotationRadians)),
-                    alignment: Alignment.center,
-                    child: RippleWaveIcon(
-                      icon: marker.selectedIcon,
-                      rippleColor: marker.selectedIconColor,
-                      iconSize: (iconSize == "S")
-                          ? 18
-                          : (iconSize == "M")
-                              ? 24
-                              : 32, // max: 32
-                      iconColor: marker.selectedIconColor,
-                      rippleDuration: const Duration(seconds: 3),
-                      onTap: () {
-                        switch (marker.selectedAction) {
-                          case "Navigation":
-                            setState(() {
-                              _selectedIndex =
-                                  currentImageId = marker.nextImageId;
-                            });
-                          case "Label":
-                            _showMarkerLabel(marker);
-                          case "Banner":
-                            _showMarkerLabel(marker);
-                        }
-                      },
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 800),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: PanoramaViewer(
+              key: ValueKey(Tuple4(_animationSpeed, _isAnimationEnable,
+                  interactionMode.toString(), currentImageId)),
+              animSpeed: _isAnimationEnable ? _animationSpeed : 0,
+              animReverse: true,
+              sensitivity: 1.8,
+              interactive: interactionMode.contains("Touch") ? true : false,
+              sensorControl: interactionMode.contains("Gyro")
+                  ? SensorControl.absoluteOrientation
+                  : SensorControl.none,
+              hotspots: currentImage?.markers.map((marker) {
+                return Hotspot(
+                  longitude: marker.longitude,
+                  latitude: marker.latitude,
+                  name: marker.label,
+                  widget: Opacity(
+                    opacity: iconOpacity,
+                    child: Transform(
+                      transform: (marker.selectedIconStyle == "Flat")
+                          ? (Matrix4.identity()
+                            ..rotateX(math.pi / 8)
+                            ..rotateZ(marker.selectedIconRotationRadians))
+                          : (Matrix4.identity()
+                            ..rotateZ(marker.selectedIconRotationRadians)),
+                      alignment: Alignment.center,
+                      child: RippleWaveIcon(
+                        icon: marker.selectedIcon,
+                        rippleColor: marker.selectedIconColor,
+                        iconSize: (iconSize == "S")
+                            ? 18
+                            : (iconSize == "M")
+                                ? 24
+                                : 32, // max: 32
+                        iconColor: marker.selectedIconColor,
+                        rippleDuration: const Duration(seconds: 3),
+                        onTap: () {
+                          switch (marker.selectedAction) {
+                            case "Navigation":
+                              setState(() {
+                                _selectedIndex =
+                                    currentImageId = marker.nextImageId;
+                              });
+                            case "Label":
+                              _showMarkerLabel(marker);
+                            case "Banner":
+                              _showMarkerLabel(marker);
+                          }
+                        },
+                      ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
-            child: Image.file(currentImage!.image),
-            onImageLoad: () {
-              if (!_isFirstLoad) {
-                _isFirstLoad = true;
+                );
+              }).toList(),
+              child: Image.file(currentImage!.image),
+              onImageLoad: () {
+                if (!_isFirstLoad) {
+                  _isFirstLoad = true;
+                  setState(() {
+                    _selectedIndex = 0;
+                  });
+                }
+              },
+              onTap: (longitude, latitude, tilt) => {
                 setState(() {
-                  _selectedIndex = 0;
-                });
-              }
-            },
-            onTap: (longitude, latitude, tilt) => {
-              setState(() {
-                _isSettingsOpen = false;
-              })
-            },
+                  _isSettingsOpen = false;
+                })
+              },
+            ),
           ),
           if (selectedMarker != null)
             Positioned(
