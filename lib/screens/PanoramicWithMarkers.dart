@@ -1,12 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 import 'dart:math' as math;
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,15 +12,12 @@ import 'package:spherelink/screens/PanoramaPreview.dart';
 import 'package:tuple/tuple.dart';
 import 'package:spherelink/utils/mergeImages.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../data/MarkerData.dart';
 import '../data/PanoramaImage.dart';
 import '../data/ViewData.dart';
 import '../utils/appColors.dart';
 import '../utils/markerFormDialog.dart';
-import '../utils/nipPainter.dart';
-import 'PanoramaView.dart';
 
 class PanoramicWithMarkers extends StatefulWidget {
   const PanoramicWithMarkers({super.key});
@@ -75,7 +70,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   Future<void> _saveView(String viewName) async {
     if (panoramaImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No panorama images to save")),
+        const SnackBar(content: Text("No panorama images to save")),
       );
       return;
     }
@@ -139,10 +134,10 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       builder: (context) {
         return AlertDialog(
           actionsPadding: const EdgeInsets.all(8),
-          title: Text("Save Panorama View"),
+          title: const Text("Save Panorama View"),
           content: TextField(
             controller: nameController,
-            decoration: InputDecoration(hintText: "Enter view name"),
+            decoration: const InputDecoration(hintText: "Enter view name"),
           ),
           actions: [
             TextButton(
@@ -152,7 +147,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   _isLoading = false;
                 })
               },
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () {
@@ -162,14 +157,14 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   Navigator.of(context).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("View name cannot be empty")),
+                    const SnackBar(content: Text("View name cannot be empty")),
                   );
                 }
                 showCustomSnackBar(context, Colors.green,
                     "New view created successfully.", Colors.white, "", null);
                 Navigator.of(context).pop();
               },
-              child: Text("Save"),
+              child: const Text("Save"),
             ),
           ],
         );
@@ -244,29 +239,58 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
               selectedMarker?.bannerImage = updatedMarkerData.bannerImage;
             });
           },
-          onCancel: () {
-            Navigator.of(context).pop();
+          onDelete: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  actionsPadding: const EdgeInsets.only(right: 16, bottom: 16),
+                  backgroundColor: AppColors.appsecondaryColor,
+                  title: const Text(
+                    "Confirm Delete",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  content: const Text(
+                    "Are you sure you want to delete this marker?",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(
+                            color: Colors.lightBlueAccent,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        setState(() {
+                          panoramaImages[currentImageId]
+                              .markers
+                              .remove(selectedMarker);
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text(
+                        "Delete",
+                        style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
           },
         );
       },
     );
-  }
-
-  void _showMarkerLabel(MarkerData marker) {
-    setState(() {
-      selectedMarker = marker;
-    });
-    Future.delayed(const Duration(seconds: 20), () {
-      setState(() {
-        selectedMarker = null;
-      });
-    });
-  }
-
-  void _deleteMarker(MarkerData marker) {
-    setState(() {
-      panoramaImages[currentImageId].markers.remove(marker);
-    });
   }
 
   void _showBottomSheetForImage() {
@@ -300,9 +324,9 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
   }
 
   Future<void> _addPanoramaImage() async {
-    final List<XFile>? pickedImages = await _imagePicker.pickMultiImage();
+    final List<XFile> pickedImages = await _imagePicker.pickMultiImage();
 
-    if (pickedImages != null && pickedImages.isNotEmpty) {
+    if (pickedImages.isNotEmpty) {
       setState(() {
         for (var pickedImage in pickedImages) {
           int imageName = panoramaImages.length + 1;
@@ -371,7 +395,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              duration: Duration(milliseconds: 800),
+              duration: const Duration(milliseconds: 800),
               content: Text('An error occurred: $e')),
         );
       }
@@ -422,23 +446,10 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                       opacity: iconOpacity,
                       child: IconButton(
                         onPressed: () {
-                          switch (marker.selectedAction) {
-                            case "Navigation":
-                              setState(() {
-                                _selectedIndex = null;
-                                currentImageId = marker.nextImageId;
-                              });
-                            case "Label":
-                              setState(() {
-                                _selectedIndex = null;
-                              });
-                              _showMarkerLabel(marker);
-                            case "Banner":
-                              setState(() {
-                                _selectedIndex = null;
-                              });
-                              _showMarkerLabel(marker);
-                          }
+                          setState(() {
+                            selectedMarker = marker;
+                          });
+                          _onEditMarker(selectedMarker!);
                         },
                         icon: Transform(
                           transform: (marker.selectedIconStyle == "Flat")
@@ -524,192 +535,6 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     ),
                   ),
                 ),
-              ),
-            ),
-          if (selectedMarker != null)
-            Positioned(
-              left: MediaQuery.of(context).orientation == Orientation.landscape
-                  ? MediaQuery.of(context).size.width / 1.40
-                  : MediaQuery.of(context).size.width / .40,
-              top: MediaQuery.of(context).size.height / 25,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.topCenter,
-                children: [
-                  Positioned(
-                    top: 12,
-                    left: -14.5,
-                    child: Transform.rotate(
-                      angle: -90 * math.pi / 180,
-                      child: CustomPaint(
-                        painter: NipPainter(
-                          borderColor: Colors.white.withAlpha(150),
-                        ),
-                        child: const SizedBox(
-                          width: 20,
-                          height: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                      child: Container(
-                        width: MediaQuery.of(context).size.width / 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(120),
-                          borderRadius: BorderRadius.circular(2),
-                          border: Border.all(
-                            color: Colors.white.withAlpha(150),
-                            width: 1.5,
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width / 2,
-                            maxHeight: MediaQuery.of(context).size.height / 2,
-                          ),
-                          child: SingleChildScrollView(
-                              child: Stack(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (selectedMarker?.bannerImage != null)
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(2),
-                                      child: SizedBox(
-                                        height: 100,
-                                        child: selectedMarker?.bannerImage !=
-                                                null
-                                            ? Image.file(
-                                                selectedMarker!.bannerImage!,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : Container(
-                                                // Placeholder widget
-                                                color: Colors.grey[200],
-                                                child: const Center(
-                                                    child: Icon(Icons.image,
-                                                        color: Colors.grey)),
-                                              ),
-                                      ),
-                                    ),
-                                  const SizedBox(
-                                    height: 15,
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      selectedMarker!.label,
-                                      style: GoogleFonts.tinos(
-                                        height: 1.2,
-                                        color: Colors.black,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ).copyWith(
-                                          color: Colors.black.withAlpha(160)),
-                                      softWrap: true,
-                                    ),
-                                  ),
-                                  if (selectedMarker?.description != "")
-                                    const Divider(
-                                        height: 2, color: Colors.black12),
-                                  if (selectedMarker?.description != "")
-                                    Flexible(
-                                      child: Text(
-                                        selectedMarker!.description,
-                                        style: GoogleFonts.abhayaLibre(
-                                            color: Colors.black87, height: 1.2),
-                                        softWrap: true,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          )),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            _onEditMarker(selectedMarker!);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.blue.withOpacity(0.7),
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: const Icon(
-                              Icons.edit,
-                              size: 20,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 35,
-                          width: 5,
-                        ),
-                        if (selectedMarker?.link?.isNotEmpty ?? false)
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.green.withOpacity(0.7),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black
-                                      .withOpacity(0.3), // Shadow color
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                  offset: const Offset(4, 4),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.all(4),
-                            child: GestureDetector(
-                              onTap: () async {
-                                final url = selectedMarker?.link;
-                                final encodedUrl = Uri.encodeFull(
-                                    url!); // Keeping the encoding
-                                final Uri uri = Uri.parse(encodedUrl);
-                                if (await canLaunchUrl(uri)) {
-                                  await launchUrl(uri);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      duration:
-                                          const Duration(milliseconds: 900),
-                                      content: Text("Incorrect url: \"$url\""),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: const Icon(
-                                Icons.link_sharp,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(
-                          width: 5,
-                        )
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
           Stack(alignment: Alignment.bottomCenter, children: [

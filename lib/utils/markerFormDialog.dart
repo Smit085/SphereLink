@@ -35,17 +35,19 @@ class MarkerFormData {
 
 class MarkerFormDialog extends StatefulWidget {
   final Function(MarkerFormData) onSave;
-  final VoidCallback onCancel;
-  final List<String> imageNames;
-  final MarkerData? initialData;
   final String title;
+  final List<String> imageNames;
+  final VoidCallback? onCancel;
+  final VoidCallback? onDelete;
+  final MarkerData? initialData;
 
   const MarkerFormDialog(
       {super.key,
       required this.title,
       required this.onSave,
-      required this.onCancel,
       required this.imageNames,
+      this.onCancel,
+      this.onDelete,
       this.initialData});
 
   @override
@@ -497,8 +499,9 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
               )),
           actions: [
             TextButton(
-              onPressed: widget.onCancel,
-              child: const Text("Cancel"),
+              onPressed:
+                  widget.title == "Edit" ? widget.onDelete : widget.onCancel,
+              child: Text(widget.title == "Edit" ? "Delete" : "Cancel"),
             ),
             ElevatedButton(
               onPressed: () {
