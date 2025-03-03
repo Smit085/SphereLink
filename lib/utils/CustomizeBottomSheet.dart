@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CustomizeBottomSheet extends StatefulWidget {
@@ -15,6 +16,12 @@ class _CustomizeBottomSheetState extends State<CustomizeBottomSheet> {
     setState(() {
       isOpen = !isOpen;
     });
+  }
+
+  @override
+  void initState() {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight]);
+    super.initState();
   }
 
   @override

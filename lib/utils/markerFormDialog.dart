@@ -99,6 +99,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
       icon: Icons.announcement_outlined,
       color: Colors.transparent
     ),
+    "hospital": (icon: Icons.local_hospital, color: Colors.transparent),
     "cart": (icon: Icons.shopping_cart, color: Colors.transparent),
     "shopping": (icon: Icons.shopping_bag, color: Colors.transparent),
     "restaurant": (icon: Icons.restaurant, color: Colors.transparent),
