@@ -7,6 +7,7 @@ class MarkerData {
   double longitude;
   double latitude;
   String label;
+  String subTitle;
   String description;
   String selectedIconStyle;
   IconData selectedIcon;
@@ -16,6 +17,8 @@ class MarkerData {
   String selectedAction;
   File? bannerImage;
   String? link;
+
+  String? linkLabel;
 
   MarkerData(
       {required this.description,
@@ -27,9 +30,11 @@ class MarkerData {
       required this.selectedIconStyle,
       required this.selectedIconRotationRadians,
       this.label = "",
+      this.subTitle = "",
       this.selectedIcon = Icons.location_pin,
       this.bannerImage,
-      this.link});
+      this.link,
+      this.linkLabel});
 
   // Convert MarkerData to JSON
   Map<String, dynamic> toJson() {
@@ -37,6 +42,7 @@ class MarkerData {
       "longitude": longitude,
       "latitude": latitude,
       "label": label,
+      "subTitle": subTitle,
       "description": description,
       "selectedIcon": selectedIcon.codePoint,
       "selectedIconStyle": selectedIconStyle,
@@ -46,6 +52,7 @@ class MarkerData {
       "selectedAction": selectedAction,
       "bannerImage": bannerImage?.path,
       "link": link,
+      "LinkLabel": linkLabel,
     };
   }
 
@@ -55,6 +62,8 @@ class MarkerData {
       longitude: json["longitude"],
       latitude: json["latitude"],
       label: json["label"],
+      linkLabel: json["linkLabel"],
+      subTitle: json["subTitle"],
       description: json["description"],
       selectedIconStyle: json["selectedIconStyle"],
       selectedIconRotationRadians: json["selectedIconRotationRadians"],
