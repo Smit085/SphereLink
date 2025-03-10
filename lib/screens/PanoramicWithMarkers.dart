@@ -179,6 +179,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
 
   void _addMarker(double longitude, double latitude) {
     showDialog(
+      barrierDismissible: false,
       context: context,
       builder: (BuildContext context) {
         List<String> imageNames =
@@ -190,10 +191,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
             panoramaImages[currentImageId].markers.add(
                   MarkerData(
                     link: data.link,
+                    linkLabel: data.linkLabel,
                     bannerImage: data.bannerImage,
                     longitude: longitude,
                     latitude: latitude,
                     label: data.label,
+                    subTitle: data.subTitle,
                     selectedIcon: data.selectedIcon,
                     selectedIconStyle: data.selectedIconStyle,
                     selectedIconRotationRadians:
@@ -236,6 +239,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
               selectedMarker?.description = updatedMarkerData.description;
               selectedMarker?.nextImageId = updatedMarkerData.nextImageId;
               selectedMarker?.link = updatedMarkerData.link;
+              selectedMarker?.linkLabel = updatedMarkerData.linkLabel;
               selectedMarker?.bannerImage = updatedMarkerData.bannerImage;
             });
           },
@@ -726,6 +730,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                         borderRadius: BorderRadius.circular(2),
                                         child: SizedBox(
                                           width: 120,
+                                          height: 120,
                                           child: Image.file(
                                             panoramaImages[index].image,
                                             fit: BoxFit.cover,

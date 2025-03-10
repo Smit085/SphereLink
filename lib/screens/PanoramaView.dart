@@ -28,10 +28,10 @@ class _PanoramaViewState extends State<PanoramaView>
     with SingleTickerProviderStateMixin {
   bool _isFirstLoad = false;
   int? _selectedIndex;
-  MarkerData? selectedMarker;
+  late MarkerData selectedMarker;
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
-  bool _isPreviewListOpen = true;
+  bool _isPreviewListOpen = false;
   bool _isSettingsOpen = false;
   late bool _isAnimationEnable = false;
   late bool _showHotspots = true;
@@ -41,10 +41,12 @@ class _PanoramaViewState extends State<PanoramaView>
   String iconSize = "M";
   double iconOpacity = 1;
   double _animationSpeed = 1;
+
+  int? _tappedMarkerIndex;
+  bool _isLabelVisible = false;
+  bool _isSheetVisible = false;
   bool _isAddressExpanded = false;
   bool _isAboutExpanded = false;
-
-  bool _isSheetVisible = false;
   double _sheetHeightFactor = 0.0;
   final double _minSheetHeightFactor = 0.18;
   final double _halfSheetHeightFactor = 0.36;
@@ -71,14 +73,10 @@ class _PanoramaViewState extends State<PanoramaView>
     super.dispose();
   }
 
-  void _showMarkerLabel(MarkerData marker) {
-    setState(() {
-      selectedMarker = marker;
-      _isSheetVisible = true;
-    });
-    Future.delayed(const Duration(seconds: 20), () {
+  void _showMarkerLabel() {
+    Future.delayed(const Duration(seconds: 3), () {
       setState(() {
-        selectedMarker = null;
+        _tappedMarkerIndex = null;
       });
     });
   }
@@ -163,51 +161,77 @@ class _PanoramaViewState extends State<PanoramaView>
                   : SensorControl.none,
               hotspots: currentImage?.markers.map((marker) {
                 return Hotspot(
+                  height: 60,
+                  width: 240,
                   longitude: marker.longitude,
                   latitude: marker.latitude,
                   name: marker.label,
-                  widget: Opacity(
-                    opacity: iconOpacity,
-                    child: Transform(
-                      transform: (marker.selectedIconStyle == "Flat")
-                          ? (Matrix4.identity()
-                            ..rotateX(math.pi / 8)
-                            ..rotateZ(marker.selectedIconRotationRadians))
-                          : (Matrix4.identity()
-                            ..rotateZ(marker.selectedIconRotationRadians)),
-                      alignment: Alignment.center,
-                      child: RippleWaveIcon(
-                        icon: marker.selectedIcon,
-                        rippleColor: marker.selectedIconColor,
-                        iconSize: (iconSize == "S")
-                            ? 18
-                            : (iconSize == "M")
-                                ? 24
-                                : 32, // max: 32
-                        iconColor: marker.selectedIconColor,
-                        rippleDuration: const Duration(seconds: 3),
-                        onTap: () {
-                          switch (marker.selectedAction) {
-                            case "Navigation":
-                              setState(() {
-                                _selectedIndex =
-                                    currentImageId = marker.nextImageId;
-                              });
-                            case "Label":
-                              setState(() {
-                                selectedMarker = marker;
-                              });
-                              _openSheet();
-                            case "Banner":
-                              setState(() {
-                                selectedMarker = marker;
-                              });
-                              _openSheet();
-                          }
-                        },
-                      ),
-                    ),
-                  ),
+                  widget: (_tappedMarkerIndex == marker.hashCode)
+                      ? Container(
+                          padding: const EdgeInsets.all(4.0),
+                          decoration: const BoxDecoration(
+                              color: Colors.black38,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(4))),
+                          child: Center(
+                              child: Text(
+                            selectedMarker.label,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          )),
+                        )
+                      : Opacity(
+                          opacity: iconOpacity,
+                          child: Transform(
+                            transform: (marker.selectedIconStyle == "Flat")
+                                ? (Matrix4.identity()
+                                  ..rotateX(math.pi / 8)
+                                  ..rotateZ(marker.selectedIconRotationRadians))
+                                : (Matrix4.identity()
+                                  ..rotateZ(
+                                      marker.selectedIconRotationRadians)),
+                            alignment: Alignment.center,
+                            child: RippleWaveIcon(
+                              icon: marker.selectedIcon,
+                              rippleColor: marker.selectedIconColor,
+                              iconSize: (iconSize == "S")
+                                  ? 18
+                                  : (iconSize == "M")
+                                      ? 24
+                                      : 32, // max: 32
+                              iconColor: marker.selectedIconColor,
+                              rippleDuration: const Duration(seconds: 3),
+                              onTap: () {
+                                setState(() {
+                                  if (marker.selectedAction == "Label") {
+                                    selectedMarker = marker;
+                                    _tappedMarkerIndex = marker.hashCode;
+                                    _closeSheetFully();
+                                  }
+                                });
+
+                                if (marker.selectedAction == "Label") {
+                                  _showMarkerLabel();
+                                } else if (marker.selectedAction ==
+                                    "Navigation") {
+                                  setState(() {
+                                    _selectedIndex =
+                                        currentImageId = marker.nextImageId;
+                                  });
+                                } else if (marker.selectedAction == "Banner") {
+                                  setState(() {
+                                    _tappedMarkerIndex = null;
+                                    selectedMarker = marker;
+                                  });
+                                  _openSheet();
+                                }
+                              },
+                            ),
+                          ),
+                        ),
                 );
               }).toList(),
               child: Image.file(currentImage!.image),

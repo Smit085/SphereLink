@@ -6,10 +6,12 @@ import 'package:custom_radio_grouped_button/custom_radio_grouped_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:tuple/tuple.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/MarkerData.dart';
 import '../data/PanoramaImage.dart';
@@ -28,11 +30,12 @@ class PanoramaPreview extends StatefulWidget {
   State<PanoramaPreview> createState() => _PanoramaPreviewState();
 }
 
-class _PanoramaPreviewState extends State<PanoramaPreview> {
+class _PanoramaPreviewState extends State<PanoramaPreview>
+    with SingleTickerProviderStateMixin {
   bool _isFirstLoad = false;
   bool _isLoading = false;
   int? _selectedIndex;
-  MarkerData? selectedMarker;
+  late MarkerData selectedMarker;
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
   bool _isPreviewListOpen = false;
@@ -46,6 +49,16 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
   double iconOpacity = 1;
   double _animationSpeed = 1;
 
+  int? _tappedMarkerIndex;
+  bool _isSheetVisible = false;
+  bool _isAddressExpanded = false;
+  bool _isAboutExpanded = false;
+  double _sheetHeightFactor = 0.0;
+  final double _minSheetHeightFactor = 0.18;
+  final double _halfSheetHeightFactor = 0.36;
+  final double _maxSheetHeightFactor = 0.95;
+  late TabController _tabController;
+
   void initializeView() {
     panoramaImages = widget.view.panoramaImages;
   }
@@ -54,6 +67,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
   void initState() {
     super.initState();
     initializeView();
+    _tabController = TabController(length: 4, vsync: this);
     SystemChrome.setPreferredOrientations(
         [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   }
@@ -65,15 +79,57 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
     super.dispose();
   }
 
-  void _showMarkerLabel(MarkerData marker) {
-    setState(() {
-      selectedMarker = marker;
-    });
-    Future.delayed(const Duration(seconds: 20), () {
+  void _showMarkerLabel() {
+    Future.delayed(const Duration(seconds: 3), () {
       setState(() {
-        selectedMarker = null;
+        _tappedMarkerIndex = null;
       });
     });
+  }
+
+  void _openSheet() {
+    print("called");
+    setState(() {
+      _isSheetVisible = true;
+      _sheetHeightFactor = _minSheetHeightFactor;
+    });
+  }
+
+  Future<void> _toggleSheet() async {
+    setState(() {
+      if (_sheetHeightFactor == 0) {
+        _openSheet();
+      } else if (_sheetHeightFactor == _minSheetHeightFactor) {
+        _sheetHeightFactor = _halfSheetHeightFactor;
+      } else if (_sheetHeightFactor == _halfSheetHeightFactor) {
+        _sheetHeightFactor = _maxSheetHeightFactor;
+      } else {
+        _sheetHeightFactor = _minSheetHeightFactor;
+      }
+    });
+  }
+
+  void _closeSheetFully() {
+    setState(() {
+      _isSheetVisible = false;
+      _sheetHeightFactor = 0.0;
+    });
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url.startsWith("http") ? url : "https://$url");
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw 'Could not launch $url';
+    }
+  }
+
+  Future<void> _launchPhone(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: "tel", path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      throw 'Could not launch $phoneUri';
+    }
   }
 
   @override
@@ -81,6 +137,13 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     final currentImage =
         panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
+
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final sheetWidth = isLandscape
+        ? MediaQuery.of(context).size.width / 2
+        : MediaQuery.of(context).size.width;
+    final sheetLeft = isLandscape ? 0 : 0;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -104,45 +167,77 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                   : SensorControl.none,
               hotspots: currentImage?.markers.map((marker) {
                 return Hotspot(
+                  height: 60,
+                  width: 240,
                   longitude: marker.longitude,
                   latitude: marker.latitude,
                   name: marker.label,
-                  widget: Opacity(
-                    opacity: iconOpacity,
-                    child: Transform(
-                      transform: (marker.selectedIconStyle == "Flat")
-                          ? (Matrix4.identity()
-                            ..rotateX(math.pi / 8)
-                            ..rotateZ(marker.selectedIconRotationRadians))
-                          : (Matrix4.identity()
-                            ..rotateZ(marker.selectedIconRotationRadians)),
-                      alignment: Alignment.center,
-                      child: RippleWaveIcon(
-                        icon: marker.selectedIcon,
-                        rippleColor: marker.selectedIconColor,
-                        iconSize: (iconSize == "S")
-                            ? 18
-                            : (iconSize == "M")
-                                ? 24
-                                : 32, // max: 32
-                        iconColor: marker.selectedIconColor,
-                        rippleDuration: const Duration(seconds: 3),
-                        onTap: () {
-                          switch (marker.selectedAction) {
-                            case "Navigation":
-                              setState(() {
-                                _selectedIndex =
-                                    currentImageId = marker.nextImageId;
-                              });
-                            case "Label":
-                              _showMarkerLabel(marker);
-                            case "Banner":
-                              _showMarkerLabel(marker);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
+                  widget: (_tappedMarkerIndex == marker.hashCode)
+                      ? Container(
+                          padding: const EdgeInsets.all(4.0),
+                          decoration: const BoxDecoration(
+                              color: Colors.black38,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(4))),
+                          child: Center(
+                              child: Text(
+                            selectedMarker.label,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          )),
+                        )
+                      : Opacity(
+                          opacity: iconOpacity,
+                          child: Transform(
+                            transform: (marker.selectedIconStyle == "Flat")
+                                ? (Matrix4.identity()
+                                  ..rotateX(math.pi / 8)
+                                  ..rotateZ(marker.selectedIconRotationRadians))
+                                : (Matrix4.identity()
+                                  ..rotateZ(
+                                      marker.selectedIconRotationRadians)),
+                            alignment: Alignment.center,
+                            child: RippleWaveIcon(
+                              icon: marker.selectedIcon,
+                              rippleColor: marker.selectedIconColor,
+                              iconSize: (iconSize == "S")
+                                  ? 18
+                                  : (iconSize == "M")
+                                      ? 24
+                                      : 32, // max: 32
+                              iconColor: marker.selectedIconColor,
+                              rippleDuration: const Duration(seconds: 3),
+                              onTap: () {
+                                setState(() {
+                                  if (marker.selectedAction == "Label") {
+                                    selectedMarker = marker;
+                                    _tappedMarkerIndex = marker.hashCode;
+                                    _closeSheetFully();
+                                  }
+                                });
+
+                                if (marker.selectedAction == "Label") {
+                                  _showMarkerLabel();
+                                } else if (marker.selectedAction ==
+                                    "Navigation") {
+                                  setState(() {
+                                    _selectedIndex =
+                                        currentImageId = marker.nextImageId;
+                                  });
+                                } else if (marker.selectedAction == "Banner") {
+                                  setState(() {
+                                    _tappedMarkerIndex = null;
+                                    selectedMarker = marker;
+                                  });
+                                  _openSheet();
+                                }
+                              },
+                            ),
+                          ),
+                        ),
                 );
               }).toList(),
               child: Image.file(currentImage!.image),
@@ -161,119 +256,6 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
               },
             ),
           ),
-          if (selectedMarker != null)
-            Positioned(
-              left: MediaQuery.of(context).orientation == Orientation.landscape
-                  ? MediaQuery.of(context).size.width / 1.40
-                  : MediaQuery.of(context).size.width / .40,
-              top: MediaQuery.of(context).size.height / 25,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.topCenter,
-                children: [
-                  Positioned(
-                    top: 12,
-                    left: -14.5,
-                    child: Transform.rotate(
-                      angle: -90 * math.pi / 180,
-                      child: CustomPaint(
-                        painter: NipPainter(
-                          borderColor: Colors.white.withAlpha(150),
-                        ),
-                        child: const SizedBox(
-                          width: 20,
-                          height: 10,
-                        ),
-                      ),
-                    ),
-                  ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                      child: Container(
-                        width: MediaQuery.of(context).size.width / 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(120),
-                          borderRadius: BorderRadius.circular(2),
-                          border: Border.all(
-                            color: Colors.white.withAlpha(150),
-                            width: 1.5,
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width / 2,
-                            maxHeight: MediaQuery.of(context).size.height / 2,
-                          ),
-                          child: SingleChildScrollView(
-                              child: Stack(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (selectedMarker?.bannerImage != null)
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(2),
-                                      child: SizedBox(
-                                        height: 100,
-                                        child: selectedMarker?.bannerImage !=
-                                                null
-                                            ? Image.file(
-                                                selectedMarker!.bannerImage!,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : Container(
-                                                // Placeholder widget
-                                                color: Colors.grey[200],
-                                                child: const Center(
-                                                    child: Icon(Icons.image,
-                                                        color: Colors.grey)),
-                                              ),
-                                      ),
-                                    ),
-                                  const SizedBox(
-                                    height: 15,
-                                  ),
-                                  Flexible(
-                                    child: Text(
-                                      selectedMarker!.label,
-                                      style: GoogleFonts.tinos(
-                                        height: 1.2,
-                                        color: Colors.black,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ).copyWith(
-                                          color: Colors.black.withAlpha(160)),
-                                      softWrap: true,
-                                    ),
-                                  ),
-                                  if (selectedMarker?.description != "")
-                                    const Divider(
-                                        height: 2, color: Colors.black12),
-                                  if (selectedMarker?.description != "")
-                                    Flexible(
-                                      child: Text(
-                                        selectedMarker!.description,
-                                        style: GoogleFonts.abhayaLibre(
-                                            color: Colors.black87, height: 1.2),
-                                        softWrap: true,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          )),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           Stack(
             alignment: Alignment.bottomCenter,
             children: [
@@ -773,6 +755,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                               value: _showHotspots,
                               onChanged: (bool value) {
                                 setState(() {
+                                  iconOpacity = (value == false) ? 0 : 1;
                                   _showHotspots = value;
                                 });
                               },
@@ -821,7 +804,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                                 ),
                                 child: Slider(
                                   value: iconOpacity,
-                                  min: 0.0,
+                                  min: 0.1,
                                   max: 1.0,
                                   divisions: 100,
                                   label: "${(iconOpacity * 100).toInt()}%",
@@ -993,7 +976,687 @@ class _PanoramaPreviewState extends State<PanoramaPreview> {
                 ),
               ),
             ],
-          )
+          ),
+          if (_isSheetVisible)
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              left: sheetLeft.toDouble(),
+              bottom: _isSheetVisible
+                  ? 0
+                  : -MediaQuery.of(context).size.height * _minSheetHeightFactor,
+              width: sheetWidth,
+              height: MediaQuery.of(context).size.height * _sheetHeightFactor,
+              child: GestureDetector(
+                onVerticalDragUpdate: (details) {
+                  setState(() {
+                    double newHeight = _sheetHeightFactor -
+                        details.primaryDelta! /
+                            MediaQuery.of(context).size.height;
+                    _sheetHeightFactor = newHeight.clamp(
+                        _minSheetHeightFactor, _maxSheetHeightFactor);
+                  });
+                },
+                onVerticalDragEnd: (details) {
+                  double velocity = details.primaryVelocity ?? 0;
+                  if (velocity < -500 || _sheetHeightFactor > 0.75) {
+                    _sheetHeightFactor = _maxSheetHeightFactor;
+                  } else if (_sheetHeightFactor > 0.35) {
+                    _sheetHeightFactor = _halfSheetHeightFactor;
+                  } else {
+                    _sheetHeightFactor = _minSheetHeightFactor;
+                  }
+                  setState(() {});
+                },
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: AppColors.appsecondaryColor,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(25),
+                        topRight: Radius.circular(25),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, -4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Drag Handle
+                        GestureDetector(
+                          onTap: _toggleSheet,
+                          child: Container(
+                            width: 50,
+                            height: 4,
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+
+                        // Header Row (Title + Icons)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      selectedMarker.label,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: _sheetHeightFactor ==
+                                              _minSheetHeightFactor
+                                          ? 1
+                                          : 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      selectedMarker.subTitle,
+                                      style: const TextStyle(
+                                        color: Colors.white60,
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Icons (Share + Close)
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      // TODO: Add share functionality
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.grey.withOpacity(0.7),
+                                      ),
+                                      padding: const EdgeInsets.all(6),
+                                      child: const Icon(
+                                        Icons.share_rounded,
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  GestureDetector(
+                                    onTap: _closeSheetFully,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.grey.withOpacity(0.7),
+                                      ),
+                                      padding: const EdgeInsets.all(6),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Tabs
+                        DefaultTabController(
+                          length: 3,
+                          child: Expanded(
+                            child: Column(
+                              children: [
+                                TabBar(
+                                  controller: _tabController,
+                                  labelColor: Colors.white,
+                                  unselectedLabelColor: Colors.grey,
+                                  indicatorColor: Colors.white,
+                                  tabs: const [
+                                    Tab(text: "Overview"),
+                                    Tab(text: "Features"),
+                                    Tab(text: "Photos"),
+                                    Tab(text: "About"),
+                                  ],
+                                ),
+                                Expanded(
+                                  child: TabBarView(
+                                    controller: _tabController,
+                                    children: [
+                                      SingleChildScrollView(
+                                        child: Column(
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 18.0,
+                                                      vertical: 12),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.location_on_outlined,
+                                                    color: Colors.blue,
+                                                    size: 24,
+                                                  ),
+                                                  const SizedBox(width: 16),
+                                                  Expanded(
+                                                    child: Text(
+                                                      "Overview Content Here kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+                                                      softWrap: true,
+                                                      maxLines:
+                                                          _isAddressExpanded
+                                                              ? null
+                                                              : 2,
+                                                      overflow:
+                                                          _isAddressExpanded
+                                                              ? TextOverflow
+                                                                  .visible
+                                                              : TextOverflow
+                                                                  .ellipsis,
+                                                      style: const TextStyle(
+                                                        color: Colors.white70,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  IconButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        _isAddressExpanded =
+                                                            !_isAddressExpanded;
+                                                      });
+                                                    },
+                                                    icon: Icon(
+                                                      _isAddressExpanded
+                                                          ? Icons
+                                                              .keyboard_arrow_up_rounded
+                                                          : Icons
+                                                              .keyboard_arrow_down_rounded,
+                                                    ),
+                                                    color: Colors.white70,
+                                                    iconSize: 24,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 1, color: Colors.grey),
+                                            GestureDetector(
+                                              onTap: () =>
+                                                  _launchPhone("97269 34451"),
+                                              child: const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 18.0,
+                                                    vertical: 12),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.phone,
+                                                      color: Colors.blue,
+                                                      size: 24,
+                                                    ),
+                                                    SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: Text(
+                                                        "97269 34451",
+                                                        style: TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 1, color: Colors.grey),
+                                            GestureDetector(
+                                              onTap: () => _launchUrl(selectedMarker
+                                                  .link
+                                                  .toString()), // Corrected URL format
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.public_rounded,
+                                                      color: Colors.blue,
+                                                      size: 24,
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: Text(
+                                                        selectedMarker.linkLabel
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 1, color: Colors.grey),
+                                            GestureDetector(
+                                              onTap: () =>
+                                                  _tabController.animateTo(3),
+                                              child: const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 18.0,
+                                                    vertical: 12),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      "See all",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 2, color: Colors.grey),
+                                          ],
+                                        ),
+                                      ),
+
+                                      //Features
+                                      Column(
+                                        children: [
+                                          Expanded(
+                                            // Ensures proper rendering inside Column
+                                            child: ListView(
+                                              shrinkWrap:
+                                                  true, // Ensures it renders inside other scrollables
+                                              children: const [
+                                                ListTile(
+                                                  title: Text(
+                                                    'Option 1',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Divider(
+                                                    height: 0,
+                                                    color: Colors.grey),
+                                                ListTile(
+                                                  title: Text(
+                                                    'Option 2',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Divider(
+                                                    height: 0,
+                                                    color: Colors.grey),
+                                                ListTile(
+                                                  title: Text(
+                                                    'Option 3',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Divider(
+                                                    height: 0,
+                                                    color: Colors.grey),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      //Photos
+                                      Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: MasonryGridView.count(
+                                            crossAxisCount: 2,
+                                            mainAxisSpacing: 8,
+                                            crossAxisSpacing: 8,
+                                            itemCount: 6, // Example image count
+                                            itemBuilder: (context, index) {
+                                              return ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                child: Image.network(
+                                                  'https://random-image-pepebigotes.vercel.app/api/random-image',
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              );
+                                            },
+                                          )),
+
+                                      // About
+                                      SingleChildScrollView(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  right: 18.0,
+                                                  left: 18,
+                                                  top: 12),
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        const Text(
+                                                          "About",
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            height:
+                                                                6), // Slightly reduced spacing
+
+                                                        // Expandable Text
+                                                        Text(
+                                                          "\"${selectedMarker.description}\"",
+                                                          softWrap: true,
+                                                          maxLines:
+                                                              _isAboutExpanded
+                                                                  ? null
+                                                                  : 2,
+                                                          overflow:
+                                                              _isAboutExpanded
+                                                                  ? TextOverflow
+                                                                      .visible
+                                                                  : TextOverflow
+                                                                      .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                            color:
+                                                                Colors.white70,
+                                                            fontSize: 14,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                IconButton(
+                                                  padding: EdgeInsets.zero,
+                                                  constraints:
+                                                      const BoxConstraints(), // Prevents extra spacing
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _isAboutExpanded =
+                                                          !_isAboutExpanded;
+                                                    });
+                                                  },
+                                                  icon: Icon(
+                                                    _isAboutExpanded
+                                                        ? Icons
+                                                            .keyboard_arrow_up_rounded
+                                                        : Icons
+                                                            .keyboard_arrow_down_rounded,
+                                                  ),
+                                                  color: Colors.white70,
+                                                  iconSize:
+                                                      20, // Adjusted size for alignment
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _isAboutExpanded =
+                                                          !_isAboutExpanded;
+                                                    });
+                                                  },
+                                                  child: Text(
+                                                    _isAboutExpanded
+                                                        ? "Less"
+                                                        : "More",
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                            // Divider - Now perfectly aligned with no extra space
+                                            const Divider(
+                                                height: 0,
+                                                thickness: 1,
+                                                color: Colors.grey),
+
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 18.0,
+                                                      vertical: 12),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.location_on_outlined,
+                                                    color: Colors.blue,
+                                                    size: 24,
+                                                  ),
+                                                  const SizedBox(width: 16),
+                                                  Expanded(
+                                                    child: Text(
+                                                      "Overview Content Here kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+                                                      softWrap: true,
+                                                      maxLines:
+                                                          _isAddressExpanded
+                                                              ? null
+                                                              : 2,
+                                                      overflow:
+                                                          _isAddressExpanded
+                                                              ? TextOverflow
+                                                                  .visible
+                                                              : TextOverflow
+                                                                  .ellipsis,
+                                                      style: const TextStyle(
+                                                        color: Colors.white70,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  IconButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        _isAddressExpanded =
+                                                            !_isAddressExpanded;
+                                                      });
+                                                    },
+                                                    icon: Icon(
+                                                      _isAddressExpanded
+                                                          ? Icons
+                                                              .keyboard_arrow_up_rounded
+                                                          : Icons
+                                                              .keyboard_arrow_down_rounded,
+                                                    ),
+                                                    color: Colors.white70,
+                                                    iconSize: 24,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 1, color: Colors.grey),
+                                            GestureDetector(
+                                              onTap: () =>
+                                                  _launchPhone("97269 34451"),
+                                              child: const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 18.0,
+                                                    vertical: 12),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.phone,
+                                                      color: Colors.blue,
+                                                      size: 24,
+                                                    ),
+                                                    SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: Text(
+                                                        "97269 34451",
+                                                        style: TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 1, color: Colors.grey),
+                                            GestureDetector(
+                                              onTap: () => _launchUrl(selectedMarker
+                                                  .link
+                                                  .toString()), // Corrected URL format
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.public_rounded,
+                                                      color: Colors.blue,
+                                                      size: 24,
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: Text(
+                                                        selectedMarker.linkLabel
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          color: Colors.white70,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const Divider(
+                                                height: 1, color: Colors.grey),
+
+                                            GestureDetector(
+                                              onTap: () =>
+                                                  _tabController.animateTo(2),
+                                              child: const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 18.0,
+                                                    vertical: 12),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      "See photos",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
