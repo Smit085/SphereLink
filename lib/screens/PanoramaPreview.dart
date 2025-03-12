@@ -38,7 +38,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
   late MarkerData selectedMarker;
   int currentImageId = 0;
   late List<PanoramaImage> panoramaImages = [];
-  bool _isPreviewListOpen = false;
+  bool _isPreviewListOpen = true;
   bool _isSettingsOpen = false;
   late bool _isAnimationEnable = false;
   late bool _showHotspots = true;
@@ -176,14 +176,15 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                       ? Container(
                           padding: const EdgeInsets.all(4.0),
                           decoration: const BoxDecoration(
-                              color: Colors.black38,
+                              color: Colors.white,
                               borderRadius:
                                   BorderRadius.all(Radius.circular(4))),
                           child: Center(
                               child: Text(
                             selectedMarker.label,
+                            textAlign: TextAlign.start,
                             style: const TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
@@ -1165,7 +1166,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                                   const SizedBox(width: 16),
                                                   Expanded(
                                                     child: Text(
-                                                      "Overview Content Here kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+                                                      selectedMarker.address,
                                                       softWrap: true,
                                                       maxLines:
                                                           _isAddressExpanded
@@ -1206,27 +1207,42 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () =>
-                                                  _launchPhone("97269 34451"),
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 18.0,
-                                                    vertical: 12),
+                                              onTap: () => {
+                                                if (selectedMarker
+                                                        .phoneNumber !=
+                                                    null)
+                                                  {
+                                                    _launchPhone(selectedMarker
+                                                        .phoneNumber
+                                                        .toString())
+                                                  }
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Icon(
+                                                    const Icon(
                                                       Icons.phone,
                                                       color: Colors.blue,
                                                       size: 24,
                                                     ),
-                                                    SizedBox(width: 16),
+                                                    const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        "97269 34451",
-                                                        style: TextStyle(
+                                                        selectedMarker
+                                                                    .phoneNumber ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .phoneNumber
+                                                                .toString(),
+                                                        style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,
                                                         ),
@@ -1239,9 +1255,14 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () => _launchUrl(selectedMarker
-                                                  .link
-                                                  .toString()), // Corrected URL format
+                                              onTap: () => {
+                                                if (selectedMarker.link != null)
+                                                  {
+                                                    _launchUrl(selectedMarker
+                                                        .link
+                                                        .toString())
+                                                  }
+                                              },
                                               child: Padding(
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -1260,8 +1281,13 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                                     const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        selectedMarker.linkLabel
-                                                            .toString(),
+                                                        selectedMarker
+                                                                    .linkLabel ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .linkLabel
+                                                                .toString(),
                                                         style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,
@@ -1357,23 +1383,29 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
 
                                       //Photos
                                       Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: MasonryGridView.count(
-                                            crossAxisCount: 2,
-                                            mainAxisSpacing: 8,
-                                            crossAxisSpacing: 8,
-                                            itemCount: 6, // Example image count
-                                            itemBuilder: (context, index) {
-                                              return ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                child: Image.network(
-                                                  'https://random-image-pepebigotes.vercel.app/api/random-image',
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              );
-                                            },
-                                          )),
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: MasonryGridView.count(
+                                          crossAxisCount: 2,
+                                          mainAxisSpacing: 8,
+                                          crossAxisSpacing: 8,
+                                          itemCount: selectedMarker
+                                                  .bannerImage?.length ??
+                                              0,
+                                          itemBuilder: (context, index) {
+                                            final File? imageFile =
+                                                selectedMarker
+                                                    .bannerImage![index];
+                                            return ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: Image.file(
+                                                imageFile!,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
 
                                       // About
                                       SingleChildScrollView(
@@ -1405,8 +1437,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                                           ),
                                                         ),
                                                         const SizedBox(
-                                                            height:
-                                                                6), // Slightly reduced spacing
+                                                            height: 6),
 
                                                         // Expandable Text
                                                         Text(
@@ -1507,7 +1538,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                                   const SizedBox(width: 16),
                                                   Expanded(
                                                     child: Text(
-                                                      "Overview Content Here kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+                                                      selectedMarker.address,
                                                       softWrap: true,
                                                       maxLines:
                                                           _isAddressExpanded
@@ -1548,27 +1579,42 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () =>
-                                                  _launchPhone("97269 34451"),
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 18.0,
-                                                    vertical: 12),
+                                              onTap: () => {
+                                                if (selectedMarker
+                                                        .phoneNumber !=
+                                                    null)
+                                                  {
+                                                    _launchPhone(selectedMarker
+                                                        .phoneNumber
+                                                        .toString())
+                                                  }
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Icon(
+                                                    const Icon(
                                                       Icons.phone,
                                                       color: Colors.blue,
                                                       size: 24,
                                                     ),
-                                                    SizedBox(width: 16),
+                                                    const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        "97269 34451",
-                                                        style: TextStyle(
+                                                        selectedMarker
+                                                                    .phoneNumber ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .phoneNumber
+                                                                .toString(),
+                                                        style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,
                                                         ),
@@ -1581,9 +1627,14 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () => _launchUrl(selectedMarker
-                                                  .link
-                                                  .toString()), // Corrected URL format
+                                              onTap: () => {
+                                                if (selectedMarker.link != null)
+                                                  {
+                                                    _launchUrl(selectedMarker
+                                                        .link
+                                                        .toString())
+                                                  }
+                                              }, // Corrected URL format
                                               child: Padding(
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -1602,8 +1653,13 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                                     const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        selectedMarker.linkLabel
-                                                            .toString(),
+                                                        selectedMarker
+                                                                    .linkLabel ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .linkLabel
+                                                                .toString(),
                                                         style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,

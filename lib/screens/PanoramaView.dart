@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:custom_radio_grouped_button/custom_radio_grouped_button.dart';
@@ -43,7 +44,6 @@ class _PanoramaViewState extends State<PanoramaView>
   double _animationSpeed = 1;
 
   int? _tappedMarkerIndex;
-  bool _isLabelVisible = false;
   bool _isSheetVisible = false;
   bool _isAddressExpanded = false;
   bool _isAboutExpanded = false;
@@ -89,13 +89,6 @@ class _PanoramaViewState extends State<PanoramaView>
     });
   }
 
-  void _closeSheetFully() {
-    setState(() {
-      _isSheetVisible = false;
-      _sheetHeightFactor = 0.0;
-    });
-  }
-
   Future<void> _toggleSheet() async {
     setState(() {
       if (_sheetHeightFactor == 0) {
@@ -107,6 +100,13 @@ class _PanoramaViewState extends State<PanoramaView>
       } else {
         _sheetHeightFactor = _minSheetHeightFactor;
       }
+    });
+  }
+
+  void _closeSheetFully() {
+    setState(() {
+      _isSheetVisible = false;
+      _sheetHeightFactor = 0.0;
     });
   }
 
@@ -170,14 +170,15 @@ class _PanoramaViewState extends State<PanoramaView>
                       ? Container(
                           padding: const EdgeInsets.all(4.0),
                           decoration: const BoxDecoration(
-                              color: Colors.black38,
+                              color: Colors.white,
                               borderRadius:
                                   BorderRadius.all(Radius.circular(4))),
                           child: Center(
                               child: Text(
                             selectedMarker.label,
+                            textAlign: TextAlign.start,
                             style: const TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
@@ -1002,7 +1003,7 @@ class _PanoramaViewState extends State<PanoramaView>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "Shalby Multi-Speciality Hospitals, Naroda",
+                                      selectedMarker.label,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 24,
@@ -1015,9 +1016,9 @@ class _PanoramaViewState extends State<PanoramaView>
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 6),
-                                    const Text(
-                                      "Shalby Hospital, Naroda",
-                                      style: TextStyle(
+                                    Text(
+                                      selectedMarker.subTitle,
+                                      style: const TextStyle(
                                         color: Colors.white60,
                                         fontSize: 12,
                                       ),
@@ -1113,7 +1114,7 @@ class _PanoramaViewState extends State<PanoramaView>
                                                   const SizedBox(width: 16),
                                                   Expanded(
                                                     child: Text(
-                                                      "Overview Content Here kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+                                                      selectedMarker.address,
                                                       softWrap: true,
                                                       maxLines:
                                                           _isAddressExpanded
@@ -1154,27 +1155,42 @@ class _PanoramaViewState extends State<PanoramaView>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () =>
-                                                  _launchPhone("97269 34451"),
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 18.0,
-                                                    vertical: 12),
+                                              onTap: () => {
+                                                if (selectedMarker
+                                                        .phoneNumber !=
+                                                    null)
+                                                  {
+                                                    _launchPhone(selectedMarker
+                                                        .phoneNumber
+                                                        .toString())
+                                                  }
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Icon(
+                                                    const Icon(
                                                       Icons.phone,
                                                       color: Colors.blue,
                                                       size: 24,
                                                     ),
-                                                    SizedBox(width: 16),
+                                                    const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        "97269 34451",
-                                                        style: TextStyle(
+                                                        selectedMarker
+                                                                    .phoneNumber ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .phoneNumber
+                                                                .toString(),
+                                                        style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,
                                                         ),
@@ -1187,27 +1203,40 @@ class _PanoramaViewState extends State<PanoramaView>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () => _launchUrl(
-                                                  "https://www.google.com"), // Corrected URL format
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 18.0,
-                                                    vertical: 12),
+                                              onTap: () => {
+                                                if (selectedMarker.link != null)
+                                                  {
+                                                    _launchUrl(selectedMarker
+                                                        .link
+                                                        .toString())
+                                                  }
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Icon(
+                                                    const Icon(
                                                       Icons.public_rounded,
                                                       color: Colors.blue,
                                                       size: 24,
                                                     ),
-                                                    SizedBox(width: 16),
+                                                    const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        "www.google.com",
-                                                        style: TextStyle(
+                                                        selectedMarker
+                                                                    .linkLabel ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .linkLabel
+                                                                .toString(),
+                                                        style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,
                                                         ),
@@ -1302,23 +1331,29 @@ class _PanoramaViewState extends State<PanoramaView>
 
                                       //Photos
                                       Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: MasonryGridView.count(
-                                            crossAxisCount: 2,
-                                            mainAxisSpacing: 8,
-                                            crossAxisSpacing: 8,
-                                            itemCount: 6, // Example image count
-                                            itemBuilder: (context, index) {
-                                              return ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                child: Image.network(
-                                                  'https://random-image-pepebigotes.vercel.app/api/random-image',
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              );
-                                            },
-                                          )),
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: MasonryGridView.count(
+                                          crossAxisCount: 2,
+                                          mainAxisSpacing: 8,
+                                          crossAxisSpacing: 8,
+                                          itemCount: selectedMarker
+                                                  .bannerImage?.length ??
+                                              0,
+                                          itemBuilder: (context, index) {
+                                            final File? imageFile =
+                                                selectedMarker
+                                                    .bannerImage![index];
+                                            return ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: Image.file(
+                                                imageFile!,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
 
                                       // About
                                       SingleChildScrollView(
@@ -1350,12 +1385,11 @@ class _PanoramaViewState extends State<PanoramaView>
                                                           ),
                                                         ),
                                                         const SizedBox(
-                                                            height:
-                                                                6), // Slightly reduced spacing
+                                                            height: 6),
 
                                                         // Expandable Text
                                                         Text(
-                                                          "\"About Content Here kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk\"",
+                                                          "\"${selectedMarker.description}\"",
                                                           softWrap: true,
                                                           maxLines:
                                                               _isAboutExpanded
@@ -1452,7 +1486,7 @@ class _PanoramaViewState extends State<PanoramaView>
                                                   const SizedBox(width: 16),
                                                   Expanded(
                                                     child: Text(
-                                                      "Overview Content Here kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+                                                      selectedMarker.address,
                                                       softWrap: true,
                                                       maxLines:
                                                           _isAddressExpanded
@@ -1493,27 +1527,42 @@ class _PanoramaViewState extends State<PanoramaView>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () =>
-                                                  _launchPhone("97269 34451"),
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 18.0,
-                                                    vertical: 12),
+                                              onTap: () => {
+                                                if (selectedMarker
+                                                        .phoneNumber !=
+                                                    null)
+                                                  {
+                                                    _launchPhone(selectedMarker
+                                                        .phoneNumber
+                                                        .toString())
+                                                  }
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Icon(
+                                                    const Icon(
                                                       Icons.phone,
                                                       color: Colors.blue,
                                                       size: 24,
                                                     ),
-                                                    SizedBox(width: 16),
+                                                    const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        "97269 34451",
-                                                        style: TextStyle(
+                                                        selectedMarker
+                                                                    .phoneNumber ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .phoneNumber
+                                                                .toString(),
+                                                        style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,
                                                         ),
@@ -1526,27 +1575,40 @@ class _PanoramaViewState extends State<PanoramaView>
                                             const Divider(
                                                 height: 1, color: Colors.grey),
                                             GestureDetector(
-                                              onTap: () => _launchUrl(
-                                                  "https://www.google.com"), // Corrected URL format
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    horizontal: 18.0,
-                                                    vertical: 12),
+                                              onTap: () => {
+                                                if (selectedMarker.link != null)
+                                                  {
+                                                    _launchUrl(selectedMarker
+                                                        .link
+                                                        .toString())
+                                                  }
+                                              }, // Corrected URL format
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 18.0,
+                                                        vertical: 12),
                                                 child: Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Icon(
+                                                    const Icon(
                                                       Icons.public_rounded,
                                                       color: Colors.blue,
                                                       size: 24,
                                                     ),
-                                                    SizedBox(width: 16),
+                                                    const SizedBox(width: 16),
                                                     Expanded(
                                                       child: Text(
-                                                        "www.google.com",
-                                                        style: TextStyle(
+                                                        selectedMarker
+                                                                    .linkLabel ==
+                                                                null
+                                                            ? "---"
+                                                            : selectedMarker
+                                                                .linkLabel
+                                                                .toString(),
+                                                        style: const TextStyle(
                                                           color: Colors.white70,
                                                           fontSize: 14,
                                                         ),
@@ -1560,8 +1622,8 @@ class _PanoramaViewState extends State<PanoramaView>
                                                 height: 1, color: Colors.grey),
 
                                             GestureDetector(
-                                              onTap: () => _tabController.animateTo(
-                                                  2), // ✅ Correct way to switch tabs
+                                              onTap: () =>
+                                                  _tabController.animateTo(2),
                                               child: const Padding(
                                                 padding: EdgeInsets.symmetric(
                                                     horizontal: 18.0,

@@ -190,22 +190,23 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           onSave: (data) => setState(() {
             panoramaImages[currentImageId].markers.add(
                   MarkerData(
-                    link: data.link,
-                    linkLabel: data.linkLabel,
-                    bannerImage: data.bannerImage,
-                    longitude: longitude,
-                    latitude: latitude,
-                    label: data.label,
-                    subTitle: data.subTitle,
-                    selectedIcon: data.selectedIcon,
-                    selectedIconStyle: data.selectedIconStyle,
-                    selectedIconRotationRadians:
-                        data.selectedIconRotationRadians,
-                    nextImageId: data.nextImageId,
-                    selectedIconColor: data.selectedIconColor,
-                    selectedAction: data.selectedAction,
-                    description: data.description,
-                  ),
+                      link: data.link,
+                      linkLabel: data.linkLabel,
+                      bannerImage: data.bannerImage,
+                      longitude: longitude,
+                      latitude: latitude,
+                      label: data.label,
+                      subTitle: data.subTitle,
+                      selectedIcon: data.selectedIcon,
+                      selectedIconStyle: data.selectedIconStyle,
+                      selectedIconRotationRadians:
+                          data.selectedIconRotationRadians,
+                      nextImageId: data.nextImageId,
+                      selectedIconColor: data.selectedIconColor,
+                      selectedAction: data.selectedAction,
+                      description: data.description,
+                      address: data.address,
+                      phoneNumber: data.phoneNumber),
                 );
             print("Marker Added");
           }),
@@ -237,6 +238,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   updatedMarkerData.selectedIconColor;
               selectedMarker?.label = updatedMarkerData.label;
               selectedMarker?.description = updatedMarkerData.description;
+              selectedMarker?.address = updatedMarkerData.address;
+              selectedMarker?.phoneNumber = updatedMarkerData.phoneNumber;
               selectedMarker?.nextImageId = updatedMarkerData.nextImageId;
               selectedMarker?.link = updatedMarkerData.link;
               selectedMarker?.linkLabel = updatedMarkerData.linkLabel;
@@ -421,7 +424,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
     final currentImage =
         panoramaImages.isNotEmpty ? panoramaImages[currentImageId] : null;
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.appprimaryBackgroundColor,
       body: Stack(
         children: [
@@ -609,8 +612,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                       Colors.white),
                                   color: Colors.blue,
-                                  strokeWidth:
-                                      2, // Adjust the thickness of the indicator
+                                  strokeWidth: 2,
                                   backgroundColor: Colors.blue,
                                 ),
                               )
