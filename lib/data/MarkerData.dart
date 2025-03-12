@@ -9,19 +9,22 @@ class MarkerData {
   String label;
   String subTitle;
   String description;
+  String address;
+  String? phoneNumber;
   String selectedIconStyle;
   IconData selectedIcon;
   Color selectedIconColor;
   int nextImageId;
   double selectedIconRotationRadians;
   String selectedAction;
-  File? bannerImage;
+  List<File?>? bannerImage;
   String? link;
 
   String? linkLabel;
 
   MarkerData(
       {required this.description,
+      required this.address,
       required this.selectedAction,
       required this.longitude,
       required this.latitude,
@@ -34,6 +37,7 @@ class MarkerData {
       this.selectedIcon = Icons.location_pin,
       this.bannerImage,
       this.link,
+      this.phoneNumber,
       this.linkLabel});
 
   // Convert MarkerData to JSON
@@ -44,13 +48,16 @@ class MarkerData {
       "label": label,
       "subTitle": subTitle,
       "description": description,
+      "address": address,
+      "phoneNumber": phoneNumber,
       "selectedIcon": selectedIcon.codePoint,
       "selectedIconStyle": selectedIconStyle,
       "selectedIconRotationRadians": selectedIconRotationRadians,
       "selectedIconColor": selectedIconColor.value,
       "nextImageId": nextImageId,
       "selectedAction": selectedAction,
-      "bannerImage": bannerImage?.path,
+      "bannerImages":
+          bannerImage?.map((file) => file?.path).toList(), // Serialize paths
       "link": link,
       "LinkLabel": linkLabel,
     };
@@ -65,6 +72,8 @@ class MarkerData {
       linkLabel: json["linkLabel"],
       subTitle: json["subTitle"],
       description: json["description"],
+      address: json["address"],
+      phoneNumber: json["phoneNumber"],
       selectedIconStyle: json["selectedIconStyle"],
       selectedIconRotationRadians: json["selectedIconRotationRadians"],
       selectedIcon: IconData(json["selectedIcon"], fontFamily: 'MaterialIcons'),
@@ -72,7 +81,8 @@ class MarkerData {
       nextImageId: json["nextImageId"],
       selectedAction: json["selectedAction"],
       bannerImage:
-          json["bannerImage"] != null ? File(json["bannerImage"]) : null,
+          (json["bannerImages"] as List?)?.map((path) => File(path)).toList() ??
+              [],
       link: json["link"],
     );
   }

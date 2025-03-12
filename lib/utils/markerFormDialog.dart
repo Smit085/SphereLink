@@ -1,3 +1,4 @@
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -15,10 +16,12 @@ class MarkerFormData {
   String label;
   String subTitle;
   String description;
+  String? phoneNumber;
+  String address;
   int nextImageId;
   String? link;
   String? linkLabel;
-  File? bannerImage;
+  List<File?>? bannerImage;
   String selectedAction;
 
   MarkerFormData({
@@ -28,9 +31,11 @@ class MarkerFormData {
     required this.subTitle,
     required this.nextImageId,
     required this.description,
+    required this.address,
     required this.selectedAction,
     required this.selectedIconStyle,
     required this.selectedIconRotationRadians,
+    this.phoneNumber,
     this.link,
     this.linkLabel,
     this.bannerImage,
@@ -62,9 +67,6 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   int _currentStep = 0;
   List<String> _steps = [];
 
-  final List<TextEditingController> _controllers =
-      List.generate(3, (_) => TextEditingController());
-
   static const List<(String, IconData)> actionOptions = [
     ("Label", Icons.label),
     ("Navigation", Icons.directions_walk),
@@ -87,15 +89,18 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   final _labelController = TextEditingController();
   final _subTitleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _addressController = TextEditingController();
   final _linkController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _linkLabelController = TextEditingController();
   final _nextImageNameController = TextEditingController();
-  File? _bannerImage;
+  List<File?>? _bannerImage = [];
   final ImagePicker _picker = ImagePicker();
 
   static const Map<String, ({IconData icon, Color color})> markerOptions = {
     "location": (icon: Icons.location_pin, color: Colors.transparent),
     "adjust": (icon: Icons.adjust, color: Colors.transparent),
+    "home": (icon: Icons.home_rounded, color: Colors.transparent),
     "arrowUp": (
       icon: Icons.arrow_circle_up_outlined,
       color: Colors.transparent
@@ -160,15 +165,29 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     _linkController.dispose();
     _linkLabelController.dispose();
     _nextImageNameController.dispose();
+    _bannerImage = [];
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(source: source);
-      setState(() {
-        _bannerImage = pickedFile != null ? File(pickedFile.path) : null;
-      });
+      if (source == ImageSource.gallery) {
+        final List<XFile> pickedImages = await _picker.pickMultiImage();
+        if (pickedImages.isNotEmpty) {
+          setState(() {
+            for (var pickedImage in pickedImages) {
+              _bannerImage?.add(File(pickedImage.path));
+            }
+          });
+        }
+      } else {
+        final XFile? pickedImage = await _picker.pickImage(source: source);
+        if (pickedImage != null) {
+          setState(() {
+            _bannerImage!.add(File(pickedImage.path));
+          });
+        }
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking image: $e')),
@@ -198,55 +217,145 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
         maxLength: maxLength,
-        maxLines: label == "Description" ? 5 : 1,
+        maxLines: (label == "Description" || label == "Address") ? 3 : 1,
       ),
     );
   }
 
+  void _showPicker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext bc) {
+        return AlertDialog(
+          title: const Text('Select an Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Library'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildImagePicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              "Add Image:",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            if (_bannerImage != null)
-              SizedBox(
-                width: 80,
-                height: 60,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(_bannerImage!, fit: BoxFit.cover),
+    return SizedBox(
+      height: 300,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () {
+              _showPicker(context);
+            },
+            child: DottedBorder(
+              borderType: BorderType.RRect,
+              dashPattern: const [12, 4],
+              strokeWidth: 2,
+              color: Colors.grey,
+              radius: const Radius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                width: 160,
+                height: 90,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate,
+                      size: 34,
+                      color: Colors.grey[700],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "Add photos",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.photo_library, size: 28),
-              onPressed: () => _pickImage(ImageSource.gallery),
             ),
-            const SizedBox(width: 16),
-            IconButton(
-              icon: const Icon(Icons.camera_alt, size: 28),
-              onPressed: () => _pickImage(ImageSource.camera),
-            ),
-          ],
-        ),
-      ],
+          ),
+          const SizedBox(height: 16), // Keeps spacing even when no images
+          SizedBox(
+              width: 350,
+              height: 100,
+              child: Scrollbar(
+                thumbVisibility: true,
+                thickness: 2.5,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(4),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _bannerImage!.length,
+                  itemBuilder: (context, index) {
+                    final file = _bannerImage![index];
+                    return Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(file!, fit: BoxFit.cover),
+                          ),
+                          Positioned(
+                            top: 5,
+                            right: 5,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _bannerImage!.removeAt(index);
+                                });
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.red.withOpacity(0.7),
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(
+                                  Icons.delete,
+                                  size: 15,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              )),
+        ],
+      ),
     );
   }
 
   List<String> getStepsForAction(String action) {
     if (action == "Banner") {
-      return ["Preferences", "Label", "Description", "Photos"];
+      return ["Preferences", "Label", "Description", "Link", "Photos"];
     }
     return ["Preferences", "Description"];
   }
@@ -258,6 +367,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
           "Preferences",
           "Label",
           "Description",
+          "Link",
           "Photos",
         ];
       } else {
@@ -270,259 +380,272 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: AlertDialog(
-      titlePadding: const EdgeInsets.symmetric(vertical: 16),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      actionsPadding: const EdgeInsets.symmetric(horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      title: Column(
-        children: [
-          Row(
-            children: [
-              // Left button (fixed width placeholder when hidden)
-              Visibility(
-                visible: _currentStep > 0,
-                maintainSize: true,
-                maintainAnimation: true,
-                maintainState: true,
-                child: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _currentStep--;
-                    });
-                  },
-                  icon: const Icon(
-                    Icons.chevron_left_rounded,
-                    size: 32,
-                  ),
-                ),
-              ),
-
-              // Title remains centered
-              Expanded(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    "${widget.title} Marker",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Right button (fixed width placeholder when hidden)
-              Visibility(
-                  visible: _currentStep < _steps.length - 1,
+        child: SingleChildScrollView(
+      child: AlertDialog(
+        titlePadding: const EdgeInsets.symmetric(vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: Column(
+          children: [
+            Row(
+              children: [
+                // Left button (fixed width placeholder when hidden)
+                Visibility(
+                  visible: _currentStep > 0,
                   maintainSize: true,
                   maintainAnimation: true,
                   maintainState: true,
                   child: IconButton(
                     onPressed: () {
-                      switch (_currentStep) {
-                        case 0:
-                          setState(() {
-                            _currentStep++;
-                          });
-                          break;
-                        case 1:
-                          if (_labelFormKey.currentState!.validate()) {
-                            setState(() {
-                              _currentStep++;
-                            });
-                          }
-                          break;
-                        case 2:
-                          if (_descriptionFormKey.currentState!.validate()) {
-                            setState(() {
-                              _currentStep++;
-                            });
-                          }
-                          break;
-                      }
+                      setState(() {
+                        _currentStep--;
+                      });
                     },
                     icon: const Icon(
-                      Icons.chevron_right_rounded,
+                      Icons.chevron_left_rounded,
                       size: 32,
                     ),
-                  ))
-            ],
-          ),
-          const Divider(thickness: 4)
-        ],
-      ),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: 410,
-          maxWidth: 450,
-        ),
-        child: StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 30,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _steps.length,
-                      (index) => GestureDetector(
-                        child: Column(
-                          children: [
-                            Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  width: _currentStep == index ? 26 : 18,
-                                  height: _currentStep == index ? 26 : 18,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _currentStep == index
-                                        ? Colors.green
-                                        : Colors.blue,
-                                  ),
-                                ),
-                                Text(
-                                  "${index + 1}",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: _currentStep == index ? 14 : 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (index < _steps.length - 1)
-                              Container(
-                                width: 3,
-                                height:
-                                    _selectedAction.$1 == "Banner" ? 30 : 130,
-                                color: Colors.grey,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
+
+                // Title remains centered
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildStepContent(),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-      actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap:
-                    widget.title == "Edit" ? widget.onDelete : widget.onCancel,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 18.0, vertical: 12),
                   child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: Alignment.center,
                     child: Text(
-                      widget.title == "Edit" ? "Delete" : "Cancel",
-                      style: TextStyle(
-                        color:
-                            widget.title == "Edit" ? Colors.red : Colors.grey,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                      "${widget.title} Marker",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (widget.title == "Edit")
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 18.0, vertical: 12),
-                        child: Text(
-                          "Cancel",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (_currentStep == _steps.length - 1)
-                    GestureDetector(
-                      onTap: () {
-                        if (_selectedAction.$1 == "Banner") {
-                          if (!_linkFormKey.currentState!.validate()) {
-                            return;
-                          }
-                        } else {
-                          if (!_labelFormKey.currentState!.validate()) {
-                            return;
-                          }
+
+                // Right button (fixed width placeholder when hidden)
+                Visibility(
+                    visible: _currentStep < _steps.length - 1,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: IconButton(
+                      onPressed: () {
+                        switch (_currentStep) {
+                          case 0:
+                            setState(() {
+                              _currentStep++;
+                            });
+                            break;
+                          case 1:
+                            if (_labelFormKey.currentState!.validate()) {
+                              setState(() {
+                                _currentStep++;
+                              });
+                            }
+                            break;
+                          case 2:
+                            if (_descriptionFormKey.currentState!.validate()) {
+                              setState(() {
+                                _currentStep++;
+                              });
+                            }
+                            break;
+                          case 3:
+                            if (_linkFormKey.currentState!.validate()) {
+                              setState(() {
+                                _currentStep++;
+                              });
+                            }
+                            break;
                         }
-                        widget.onSave!(MarkerFormData(
-                          selectedAction: _selectedAction.$1,
-                          selectedIcon: _selectedIcon,
-                          selectedIconStyle: _selectedIconStyle,
-                          selectedIconRotationRadians:
-                              _selectedIconRotationRadians,
-                          selectedIconColor: _selectedIconColor,
-                          label: _labelController.text,
-                          subTitle: _subTitleController.text,
-                          description: _descriptionController.text,
-                          nextImageId: _selectedNextImageName != null
-                              ? widget.imageNames!
-                                  .indexOf(_selectedNextImageName!)
-                              : -1,
-                          link: _linkController.text.isNotEmpty
-                              ? _linkController.text
-                              : null,
-                          linkLabel: _linkLabelController.text.isNotEmpty
-                              ? _linkLabelController.text
-                              : null,
-                          bannerImage: _bannerImage,
-                        ));
-                        Navigator.of(context).pop();
                       },
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 18.0, vertical: 12),
-                        child: Text(
-                          "Save",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      icon: const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 32,
                       ),
-                    ),
-                ],
-              ),
+                    ))
+              ],
             ),
+            const Divider(thickness: 4)
           ],
         ),
-      ],
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: 410,
+            maxHeight: 205,
+            maxWidth: 450,
+          ),
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 30,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        _steps.length,
+                        (index) => GestureDetector(
+                          child: Column(
+                            children: [
+                              Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    width: _currentStep == index ? 26 : 18,
+                                    height: _currentStep == index ? 26 : 18,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _currentStep == index
+                                          ? Colors.green
+                                          : Colors.blue,
+                                    ),
+                                  ),
+                                  Text(
+                                    "${index + 1}",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: _currentStep == index ? 14 : 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (index < _steps.length - 1)
+                                Container(
+                                  width: 3,
+                                  height:
+                                      _selectedAction.$1 == "Banner" ? 24 : 130,
+                                  color: Colors.grey,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: _buildStepContent(),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: widget.title == "Edit"
+                      ? widget.onDelete
+                      : widget.onCancel,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18.0, vertical: 12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        widget.title == "Edit" ? "Delete" : "Cancel",
+                        style: TextStyle(
+                          color:
+                              widget.title == "Edit" ? Colors.red : Colors.grey,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (widget.title == "Edit")
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 18.0, vertical: 12),
+                          child: Text(
+                            "Cancel",
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_currentStep == _steps.length - 1)
+                      GestureDetector(
+                        onTap: () {
+                          if (_selectedAction.$1 != "Banner") {
+                            //   if (!_linkFormKey.currentState!.validate()) {
+                            //     return;
+                            //   }
+                            // } else {
+                            if (!_labelFormKey.currentState!.validate()) {
+                              return;
+                            }
+                          }
+                          widget.onSave!(MarkerFormData(
+                            selectedAction: _selectedAction.$1,
+                            selectedIcon: _selectedIcon,
+                            selectedIconStyle: _selectedIconStyle,
+                            selectedIconRotationRadians:
+                                _selectedIconRotationRadians,
+                            selectedIconColor: _selectedIconColor,
+                            label: _labelController.text,
+                            subTitle: _subTitleController.text,
+                            description: _descriptionController.text,
+                            address: _addressController.text,
+                            phoneNumber: _phoneController.text,
+                            nextImageId: _selectedNextImageName != null
+                                ? widget.imageNames!
+                                    .indexOf(_selectedNextImageName!)
+                                : -1,
+                            link: _linkController.text.isNotEmpty
+                                ? _linkController.text
+                                : null,
+                            linkLabel: _linkLabelController.text.isNotEmpty
+                                ? _linkLabelController.text
+                                : null,
+                            bannerImage: _bannerImage,
+                          ));
+                          Navigator.of(context).pop();
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 18.0, vertical: 12),
+                          child: Text(
+                            "Save",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     ));
   }
 
@@ -571,7 +694,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                             _subTitleController.clear();
                             _descriptionController.clear();
                             _linkController.clear();
-                            _bannerImage = null;
+                            _bannerImage = [];
                           }
                         });
                         _updateSteps(); // Update tabs dynamically
@@ -804,6 +927,14 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                   validator: (value) =>
                       value?.isEmpty ?? true ? "Description is required" : null,
                 ),
+              if (_selectedAction.$1 == "Banner")
+                _buildTextField(
+                  label: "Address",
+                  controller: _addressController,
+                  maxLength: 150,
+                  validator: (value) =>
+                      value?.isEmpty ?? true ? "Address is required" : null,
+                ),
             ],
           ),
         );
@@ -820,6 +951,25 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
               if (_selectedAction.$1 == "Banner")
                 Column(
                   children: [
+                    TextFormField(
+                      keyboardType: TextInputType.phone,
+                      controller: _phoneController,
+                      maxLength: 10,
+                      decoration: InputDecoration(
+                        counterText: '',
+                        labelText: 'Phone Number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value!.isNotEmpty &&
+                            !RegExp(r'^[6-9]\d{9}$').hasMatch(value)) {
+                          return 'Please enter a valid 10-digit phone number';
+                        }
+                        return null;
+                      },
+                    ),
                     _buildTextField(
                       label: "Link",
                       controller: _linkController,
@@ -844,13 +994,13 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                         return null;
                       },
                     ),
-                    _buildImagePicker(),
                   ],
                 )
             ],
           ),
         );
-
+      case 4:
+        return _buildImagePicker();
       default:
         return const SizedBox.shrink();
     }
