@@ -84,7 +84,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
-                    } else if (!RegExp(r"^\d{10}").hasMatch(value)) {
+                    } else if (!RegExp(r'^[6-9]\d{9}$').hasMatch(value)) {
                       return 'Please enter a valid 10-digit phone number';
                     }
                     return null;
