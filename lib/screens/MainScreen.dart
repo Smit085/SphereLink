@@ -4,6 +4,7 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:spherelink/screens/ExploreScreen.dart';
 import 'package:spherelink/screens/HomeScreen.dart';
 import 'package:spherelink/screens/ProfileScreen.dart';
@@ -84,15 +85,58 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _openAppInfo() async {
     const intent = AndroidIntent(
-      action: "action_application_details_settings",
+      action: "android.settings.APPLICATION_DETAILS_SETTINGS",
       package: 'com.example.spherelink',
       data: 'package:com.example.spherelink',
     );
     await intent.launch();
   }
 
+  Future<void> _openNetworkSettings() async {
+    const intent = AndroidIntent(
+      action: "android.settings.AIRPLANE_MODE_SETTINGS",
+    );
+    await intent.launch();
+  }
+
+  Timer? _loadingAnimationTimer;
+  int _dotCount = 0;
+
+  void _startLocationAnimation() {
+    _loadingAnimationTimer?.cancel();
+    _dotCount = 0;
+
+    setState(() {
+      _currentLocation = "Fetching location.";
+    });
+
+    _loadingAnimationTimer =
+        Timer.periodic(const Duration(milliseconds: 300), (timer) {
+      setState(() {
+        _dotCount = (_dotCount + 1) % 4; // Cycle between 0, 1, 2, 3 dots
+        _currentLocation = "Fetching location${"." * _dotCount}";
+      });
+    });
+  }
+
   Future<void> _fetchLocation() async {
+    setState(() {
+      _currentLocation = "Fetching location...";
+    });
+    _startLocationAnimation();
+
     try {
+      bool internet = await InternetConnection().hasInternetAccess;
+      if (!internet) {
+        showCustomSnackBar(
+            context,
+            AppColors.textColorPrimary,
+            "Internet connection is required.",
+            Colors.white,
+            "Settings",
+            _openNetworkSettings);
+        return;
+      }
       LocationPermission permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
@@ -104,33 +148,24 @@ class _MainScreenState extends State<MainScreen> {
           return;
         }
       }
-      bool serviceEnabled = false;
-
-      if (!serviceEnabled) {
-        setState(() {
-          _currentLocation = "Fetching location...";
-        });
-      }
-
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-      if (serviceEnabled) {
-        setState(() {
-          _currentLocation = "Fetching location...";
-        });
-      }
 
       if (permission == LocationPermission.deniedForever) {
         setState(() {
           _currentLocation = "Location Permission denied.";
         });
-        showCustomSnackBar(context, AppColors.textColorPrimary,
-            "App permission denied.", Colors.white, "Settings", _openAppInfo);
+        showCustomSnackBar(
+            context,
+            AppColors.textColorPrimary,
+            "Location permission denied.",
+            Colors.white,
+            "Settings",
+            _openAppInfo);
         return;
       }
 
       Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
@@ -150,6 +185,8 @@ class _MainScreenState extends State<MainScreen> {
       setState(() {
         _currentLocation = "Unable to fetch location, Try again!";
       });
+    } finally {
+      _loadingAnimationTimer?.cancel();
     }
   }
 
