@@ -245,15 +245,16 @@ class _MainScreenState extends State<MainScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildNavItem(icon: Icons.home, index: 0),
-          _buildNavItem(icon: Icons.explore, index: 1),
-          _buildNavItem(icon: Icons.person, index: 2),
+          _buildNavItem(icon: Icons.home, index: 0, label: "Home"),
+          _buildNavItem(icon: Icons.explore, index: 1, label: "Explore"),
+          _buildNavItem(icon: Icons.person, index: 2, label: "Profile"),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem({required IconData icon, required int index}) {
+  Widget _buildNavItem(
+      {required IconData icon, required int index, required String label}) {
     final isSelected = _selectedIndex == index;
 
     return Expanded(
@@ -275,7 +276,7 @@ class _MainScreenState extends State<MainScreen> {
                       : Colors.transparent,
                   shape: BoxShape.rectangle,
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                // padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -293,7 +294,14 @@ class _MainScreenState extends State<MainScreen> {
                         color: isSelected ? Colors.white : Colors.grey,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    if (isSelected)
+                      Text(
+                        label,
+                        style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.grey,
+                            fontSize: 9),
+                        // key: ValueKey<bool>(isSelected),
+                      ),
                     Stack(
                       children: [
                         Container(
