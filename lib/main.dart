@@ -1,10 +1,14 @@
 import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:spherelink/screens/ExploreScreen.dart';
+import 'package:spherelink/screens/LoginScreen.dart';
 import 'package:spherelink/screens/MainScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
+import 'package:spherelink/screens/PanoramicWithMarkers.dart';
+import 'package:spherelink/screens/SplashScreen.dart';
+import 'package:spherelink/utils/CustomizeBottomSheet.dart';
 
 void main() {
   final ImagePickerPlatform imagePickerImplementation =
@@ -19,11 +23,12 @@ class SphereLink extends StatelessWidget {
   const SphereLink({super.key});
   @override
   Widget build(BuildContext context) {
+    debugPaintSizeEnabled = false;
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Marker App',
-      home: const MainScreen(),
+      title: 'SphereLink',
+      home: SplashScreen(),
       theme: ThemeData(
         appBarTheme: const AppBarTheme(),
       ),
