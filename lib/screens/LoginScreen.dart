@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:spherelink/core/session.dart';
+import 'package:spherelink/core/GoogleAuthService.dart';
 import 'package:spherelink/utils/appColors.dart';
+import '../utils/CustomPageRoute.dart';
 import '../widget/customSnackbar.dart';
 import 'MainScreen.dart';
 import 'RegistrationScreen.dart';
@@ -20,6 +22,33 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  void _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+
+    final response = await GoogleAuthService().signInWithGoogle();
+    final user = response?['user']; // Extract only the user map
+
+    if (user != null) {
+      await Session().saveSession("${user['firstName']} ${user['lastName']}");
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showCustomSnackBar(context, AppColors.textColorPrimary,
+            "Login successful", Colors.white, "", () => {});
+      });
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Google Sign-In failed. Try again!")),
+      );
+    }
+
+    setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -182,15 +211,46 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextButton(
                   onPressed: () {
                     Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const RegistrationScreen(),
-                      ),
-                    );
+                        context,
+                        CustomPageRoute(
+                          builder: (_) => const RegistrationScreen(),
+                          direction: TransitionDirection.fromRight,
+                        ));
                   },
                   child: const Text('Don\'t have an account? Register',
                       style: TextStyle(color: Colors.blue)),
                 ),
+                GestureDetector(
+                  onTap: () {
+                    print("Google");
+                    _isLoading ? null : _handleGoogleSignIn();
+                  },
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 80,
+                    child: _isLoading
+                        ? null
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Image.asset(
+                                "assets/img_google.png",
+                                width: 45,
+                                height: 45,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(
+                                width: 5.0,
+                              ),
+                              const Text(
+                                'Sign-in with Google',
+                                style: TextStyle(fontSize: 14),
+                              )
+                            ],
+                          ),
+                  ),
+                )
               ],
             ),
           ),
