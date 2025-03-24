@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:spherelink/core/apiService.dart';
 import 'package:spherelink/core/userSettings.dart';
 import 'package:spherelink/screens/PanoramaView.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
@@ -633,7 +634,7 @@ class _HomeScreenState extends State<HomeScreen> {
         style: const TextStyle(fontSize: 12, color: Colors.grey),
       ),
       trailing: IconButton(
-        onPressed: () => {},
+        onPressed: () => {ApiService().syncDataToServer(view)},
         icon: const Icon(
           Icons.file_upload_outlined,
           color: Colors.blue,

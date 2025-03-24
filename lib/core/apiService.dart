@@ -1,20 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart'; // Add this for MediaType
 import '../data/ViewData.dart';
+import 'AppConfig.dart';
 
 class ApiService {
-  final String baseUrl = "http://192.168.235.87:8080/api/v1";
+  String baseUrl = AppConfig.apiBaseUrl;
+  final Dio _dio = Dio();
+
+  ApiService() {
+    _dio.interceptors.add(RetryInterceptor(
+      dio: _dio,
+      retries: 3,
+      retryDelays: const Duration(seconds: 2),
+    ));
+  }
 
   /// Test API Connection
   Future<String> testBackend() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/test'));
-
       if (response.statusCode == 200) {
         print("Success: ${response.body}");
-        return response.body.toString(); // Ensure it's always a String
+        return response.body;
       } else {
         throw Exception('Failed to load test data');
       }
@@ -23,7 +34,7 @@ class ApiService {
     }
   }
 
-  /// Secure Login (Changed from GET to POST)
+  /// User Login
   Future<String?> validateUser(String email, String password) async {
     try {
       final response = await http
@@ -35,16 +46,11 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        try {
-          final responseData = jsonDecode(response.body);
-          print("Login Response: ${response.body}");
-
-          return responseData['message'] == 'Login successful'
-              ? 'Login successful'
-              : 'Login unsuccessful';
-        } catch (e) {
-          return 'Error parsing response';
-        }
+        final responseData = jsonDecode(response.body);
+        print("Login Response: ${response.body}");
+        return responseData['message'] == 'Login successful'
+            ? 'Login successful'
+            : 'Login unsuccessful';
       } else if (response.statusCode == 401) {
         return 'Invalid password.';
       } else {
@@ -60,7 +66,7 @@ class ApiService {
 
   /// User Signup
   Future<String?> signUpUser(String firstName, String lastName,
-      String phoneNumber, String email, String password) async {
+      String phoneNumber, String emailId, String password) async {
     try {
       final response = await http
           .post(
@@ -70,22 +76,18 @@ class ApiService {
               'firstName': firstName,
               'lastName': lastName,
               'phoneNumber': phoneNumber,
-              'email': email,
+              'emailId': emailId,
               'password': password,
             }),
           )
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201) {
-        try {
-          final responseData = jsonDecode(response.body);
-          print("Signup Response: ${response.body}");
-          return responseData['message'] == 'Signup successful'
-              ? 'Signup successful'
-              : 'Signup unsuccessful';
-        } catch (e) {
-          return 'Error parsing response';
-        }
+        final responseData = jsonDecode(response.body);
+        print("Signup Response: ${response.body}");
+        return responseData['message'] == 'Signup successful'
+            ? 'Signup successful'
+            : 'Signup unsuccessful';
       } else if (response.statusCode == 409) {
         return 'User already exists';
       } else {
@@ -108,14 +110,9 @@ class ApiService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        try {
-          final responseData = jsonDecode(response.body);
-          print("User Data: $responseData");
-          return responseData;
-        } catch (e) {
-          print('Error parsing user data');
-          return null;
-        }
+        final responseData = jsonDecode(response.body);
+        print("User Data: $responseData");
+        return responseData;
       } else if (response.statusCode == 404) {
         print('User not found');
         return null;
@@ -130,73 +127,169 @@ class ApiService {
     }
   }
 
-  // Encode Image to Base64
-  String? encodeImage(File? imageFile) {
-    if (imageFile == null || !imageFile.existsSync()) return null;
-    return base64Encode(imageFile.readAsBytesSync());
-  }
-
-  List<String>? encodeImages(List<File?>? imageFiles) {
-    if (imageFiles == null || imageFiles.isEmpty) return null;
-
-    return imageFiles
-        .where((file) =>
-            file != null &&
-            file.existsSync()) // Remove nulls & non-existing files
-        .map((file) => base64Encode(file!.readAsBytesSync()))
-        .toList();
-  }
-
-  /// Prepare JSON Data for API
-  Future<Map<String, dynamic>> prepareSyncData(ViewData viewData) async {
-    return {
-      "viewName": viewData.viewName,
-      "thumbnailImage": encodeImage(viewData.thumbnailImage),
-      "dateTime": viewData.dateTime.toIso8601String(),
-      "panoramaImages": viewData.panoramaImages
-          .map((image) => {
-                "image": encodeImage(image.image),
-                "imageName": image.imageName,
-                "markers": image.markers
-                    .map((marker) => {
-                          "longitude": marker.longitude,
-                          "latitude": marker.latitude,
-                          "label": marker.label,
-                          "description": marker.description,
-                          "selectedIcon": marker.selectedIcon.codePoint,
-                          "selectedIconColor": marker.selectedIconColor.value,
-                          "nextImageId": marker.nextImageId,
-                          "selectedAction": marker.selectedAction,
-                          "bannerImage": encodeImages(marker.bannerImage),
-                          "link": marker.link,
-                        })
-                    .toList(),
-              })
-          .toList(),
-    };
-  }
-
-  /// Sync Data to Server (Fixed endpoint)
-  Future<void> syncDataToServer(ViewData viewData) async {
+  /// Get Original Image Bytes
+  Future<Uint8List?> getOriginalImage(File? imageFile) async {
+    if (imageFile == null || !await imageFile.exists()) return null;
     try {
-      Map<String, dynamic> jsonData = await prepareSyncData(viewData);
+      final bytes = await imageFile.readAsBytes();
+      print('Original image size: ${bytes.length} bytes');
+      return bytes;
+    } catch (e) {
+      print('Error reading image file: $e');
+      return null;
+    }
+  }
 
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/sync'), // Corrected API endpoint
-            headers: {"Content-Type": "application/json"},
-            body: jsonEncode(jsonData),
-          )
-          .timeout(const Duration(seconds: 10));
+  /// Sync Data to Server
+  Future<bool> syncDataToServer(ViewData view) async {
+    try {
+      // Prepare metadata
+      Map<String, dynamic> metadata = {
+        "viewName": view.viewName,
+        "dateTime": view.dateTime.toIso8601String(),
+      };
+
+      FormData formData = FormData();
+
+      // Add thumbnail image
+      Uint8List? originalThumbnail =
+          await getOriginalImage(view.thumbnailImage);
+      if (originalThumbnail != null) {
+        formData.files.add(MapEntry(
+          'thumbnailImage',
+          MultipartFile.fromBytes(
+            originalThumbnail,
+            filename: 'thumbnail_${view.viewName}.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        ));
+        print('Thumbnail size: ${originalThumbnail.length} bytes');
+      }
+
+      // Add panorama images and markers
+      for (int i = 0; i < view.panoramaImages.length; i++) {
+        final panoImage = view.panoramaImages[i];
+        Uint8List? originalImage = await getOriginalImage(panoImage.image);
+
+        if (originalImage != null) {
+          // Simplified key name and added detailed logging
+          String fileKey = 'panoramaImage_$i';
+          formData.files.add(MapEntry(
+            fileKey,
+            MultipartFile.fromBytes(
+              originalImage,
+              filename: '${panoImage.imageName}.jpg',
+              contentType: MediaType('image', 'jpeg'),
+            ),
+          ));
+          print('Added panorama image $i:');
+          print('  Key: $fileKey');
+          print('  Filename: ${panoImage.imageName}.jpg');
+          print('  Size: ${originalImage.length} bytes');
+        } else {
+          print('Warning: No image data for panorama $i');
+        }
+
+        // Store metadata separately with clear indexing
+        formData.fields.add(MapEntry(
+          'panorama[$i][imageName]',
+          panoImage.imageName,
+        ));
+        formData.fields.add(MapEntry(
+          'panorama[$i][markers]',
+          jsonEncode(panoImage.markers
+              .map((marker) => {
+                    "longitude": marker.longitude,
+                    "latitude": marker.latitude,
+                    "label": marker.label,
+                    "subTitle": marker.subTitle,
+                    "description": marker.description,
+                    "address": marker.address,
+                    "phoneNumber": marker.phoneNumber,
+                    "selectedIconStyle": marker.selectedIconStyle,
+                    "selectedIcon": marker.selectedIcon.codePoint,
+                    "selectedIconColor": marker.selectedIconColor.value,
+                    "nextImageId": marker.nextImageId,
+                    "selectedIconRotationRadians":
+                        marker.selectedIconRotationRadians.toString(),
+                    "selectedAction": marker.selectedAction,
+                    "link": marker.link,
+                  })
+              .toList()),
+        ));
+      }
+
+      formData.fields.add(MapEntry('metadata', jsonEncode(metadata)));
+
+      print('FormData contents:');
+      print('Files: ${formData.files.length}');
+      formData.files
+          .forEach((entry) => print('  ${entry.key}: ${entry.value.filename}'));
+      print('Fields: ${formData.fields.length}');
+      formData.fields
+          .forEach((entry) => print('  ${entry.key}: ${entry.value}'));
+
+      final response = await _dio.post(
+        'https://webhook.site/f97db724-a5b4-4579-808c-65320902072d',
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+          },
+        ),
+        onSendProgress: (sent, total) {
+          print('Upload progress: ${(sent / total * 100).toStringAsFixed(2)}%');
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response headers: ${response.headers}');
+      print('Response data: ${response.data}');
 
       if (response.statusCode == 200) {
-        print("Data successfully uploaded to the server");
+        print("✅ Data successfully uploaded");
+        return true;
       } else {
-        print("Failed to upload data. Status Code: ${response.statusCode}");
-        print('🔍 Response: ${response.body}');
+        print("❌ Upload failed. Status: ${response.statusCode}");
+        return false;
       }
     } catch (e) {
-      print("Error uploading data: $e");
+      print("❌ Error uploading: $e");
+      if (e is DioException) {
+        print('Dio error response: ${e.response?.data}');
+      }
+      return false;
+    }
+  }
+}
+
+class RetryInterceptor extends Interceptor {
+  final Dio dio;
+  final int retries;
+  final Duration retryDelays;
+
+  RetryInterceptor({
+    required this.dio,
+    required this.retries,
+    required this.retryDelays,
+  });
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    int attempt = err.requestOptions.extra['retry_count'] ?? 0;
+    if (attempt < retries) {
+      print('Retrying request (${attempt + 1}/$retries)...');
+      await Future.delayed(retryDelays);
+      err.requestOptions.extra['retry_count'] = attempt + 1;
+      try {
+        final response = await dio.fetch(err.requestOptions);
+        handler.resolve(response);
+      } catch (e) {
+        handler.next(err);
+      }
+    } else {
+      handler.next(err);
     }
   }
 }

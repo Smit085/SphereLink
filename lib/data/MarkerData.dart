@@ -19,7 +19,6 @@ class MarkerData {
   String selectedAction;
   List<File?>? bannerImage;
   String? link;
-
   String? linkLabel;
 
   MarkerData(

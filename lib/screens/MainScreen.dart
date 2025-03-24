@@ -14,7 +14,7 @@ import '../widget/BadgeNotificationIcon.dart';
 import '../widget/customSnackbar.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -347,7 +347,6 @@ class _AppBarTitle extends StatelessWidget {
   final VoidCallback onRefresh;
 
   const _AppBarTitle({
-    super.key,
     required this.username,
     required this.location,
     required this.onRefresh,
