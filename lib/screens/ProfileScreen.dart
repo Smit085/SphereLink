@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:spherelink/core/session.dart';
 import 'package:spherelink/screens/LoginScreen.dart';
 import 'package:spherelink/utils/appColors.dart';
@@ -23,6 +24,8 @@ class ProfileScreen extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () async {
               await Session().clearSession();
+              await GoogleSignIn().disconnect();
+              await GoogleSignIn().signOut();
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginScreen()),

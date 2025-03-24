@@ -8,7 +8,6 @@ import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
 import 'package:spherelink/screens/SplashScreen.dart';
-import 'package:spherelink/utils/CustomizeBottomSheet.dart';
 
 void main() {
   final ImagePickerPlatform imagePickerImplementation =
@@ -28,7 +27,7 @@ class SphereLink extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SphereLink',
-      home: SplashScreen(),
+      home: const MainScreen(),
       theme: ThemeData(
         appBarTheme: const AppBarTheme(),
       ),
