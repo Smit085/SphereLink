@@ -1,3 +1,6 @@
+import 'dart:ffi';
+
+import 'package:mappls_gl/mappls_gl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Session {
@@ -6,10 +9,28 @@ class Session {
     await prefs.setString('username', username);
   }
 
-  // Retrieve token or session data
   Future<String?> getSession() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('username');
+  }
+
+  Future<void> saveUserLastLocation(double latitude, double longitude) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('latitude', latitude.toString());
+    await prefs.setString('longitude', longitude.toString());
+  }
+
+  Future<LatLng> getUserLastLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final latitudeString = prefs.getString('latitude');
+    final longitudeString = prefs.getString('longitude');
+
+    if (latitudeString != null && longitudeString != null) {
+      final latitude = double.parse(latitudeString);
+      final longitude = double.parse(longitudeString);
+      return LatLng(latitude, longitude);
+    }
+    return const LatLng(0.0, 0.0);
   }
 
   // Clear session data
