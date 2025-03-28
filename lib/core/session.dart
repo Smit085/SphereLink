@@ -30,7 +30,7 @@ class Session {
       final longitude = double.parse(longitudeString);
       return LatLng(latitude, longitude);
     }
-    return const LatLng(0.0, 0.0);
+    return const LatLng(26.7957, 82.1944);
   }
 
   // Clear session data
