@@ -33,6 +33,9 @@ class _MainScreenState extends State<MainScreen> {
 
   StreamSubscription<Position>? _positionStream;
 
+  Timer? _loadingAnimationTimer;
+  int _dotCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +66,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _updateLocation(Position position) async {
     try {
+      Session().saveUserLastLocation(position.latitude, position.longitude);
       List<Placemark> placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
       if (placemarks.isNotEmpty) {
@@ -98,9 +102,6 @@ class _MainScreenState extends State<MainScreen> {
     );
     await intent.launch();
   }
-
-  Timer? _loadingAnimationTimer;
-  int _dotCount = 0;
 
   void _startLocationAnimation() {
     _loadingAnimationTimer?.cancel();

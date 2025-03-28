@@ -9,6 +9,7 @@ import 'package:spherelink/core/apiService.dart';
 import 'package:spherelink/core/userSettings.dart';
 import 'package:spherelink/screens/PanoramaView.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
+import 'package:spherelink/screens/PublishViewScreen.dart';
 import 'package:spherelink/utils/appColors.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
 
@@ -634,7 +635,10 @@ class _HomeScreenState extends State<HomeScreen> {
         style: const TextStyle(fontSize: 12, color: Colors.grey),
       ),
       trailing: IconButton(
-        onPressed: () => {ApiService().syncDataToServer(view)},
+        onPressed: () => {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => PublishViewScreen()))
+        },
         icon: const Icon(
           Icons.file_upload_outlined,
           color: Colors.blue,
