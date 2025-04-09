@@ -28,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final response = await GoogleAuthService().signInWithGoogle();
     final user = response?['user']; // Extract only the user map
+    final token = response?['token'];
+    await Session().saveUserToken(token);
 
     if (user != null) {
       await Session().saveSession("${user['firstName']} ${user['lastName']}");
@@ -54,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: AppColors.appprimaryBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Center(
