@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart'; // Add this for MediaType
+import 'package:spherelink/core/session.dart';
 import '../data/ViewData.dart';
 import 'AppConfig.dart';
 
@@ -140,13 +141,18 @@ class ApiService {
     }
   }
 
-  /// Sync Data to Server
   Future<bool> syncDataToServer(ViewData view) async {
     try {
       // Prepare metadata
+      String? token = await Session().getUserToken();
+      print("Token: ${token ?? "No token available"}");
+
       Map<String, dynamic> metadata = {
-        "viewName": view.viewName,
-        "dateTime": view.dateTime.toIso8601String(),
+        "viewName": view.viewName ?? "Untitled View",
+        "dateTime": view.dateTime?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
+        "description": view.description ?? "",
+        "location": view.location ?? 0.0
       };
 
       FormData formData = FormData();
@@ -166,13 +172,12 @@ class ApiService {
         print('Thumbnail size: ${originalThumbnail.length} bytes');
       }
 
-      // Add panorama images and markers
+      // Add panorama images, markers, and banner images
       for (int i = 0; i < view.panoramaImages.length; i++) {
         final panoImage = view.panoramaImages[i];
         Uint8List? originalImage = await getOriginalImage(panoImage.image);
 
         if (originalImage != null) {
-          // Simplified key name and added detailed logging
           String fileKey = 'panoramaImage_$i';
           formData.files.add(MapEntry(
             fileKey,
@@ -195,6 +200,8 @@ class ApiService {
           'panorama[$i][imageName]',
           panoImage.imageName,
         ));
+
+        // Add markers data
         formData.fields.add(MapEntry(
           'panorama[$i][markers]',
           jsonEncode(panoImage.markers
@@ -217,8 +224,36 @@ class ApiService {
                   })
               .toList()),
         ));
+
+        // Add banner images (new part)
+        for (int j = 0; j < panoImage.markers.length; j++) {
+          final marker = panoImage.markers[j];
+          if (marker.bannerImage != null) {
+            for (int k = 0; k < (marker.bannerImage?.length ?? 0); k++) {
+              final bannerFile = marker.bannerImage?[k];
+              if (bannerFile != null) {
+                Uint8List? bannerBytes = await getOriginalImage(bannerFile);
+                if (bannerBytes != null) {
+                  formData.files.add(MapEntry(
+                    'bannerImage_${i}_${j}_$k',
+                    MultipartFile.fromBytes(
+                      bannerBytes,
+                      filename: 'bannerImage_${i}_${j}_$k.jpg',
+                      contentType: MediaType('image', 'jpeg'),
+                    ),
+                  ));
+                  print('Added banner image for marker $j at panorama $i:');
+                  print('  Key: bannerImage_${i}_${j}_$k');
+                  print('  Filename: bannerImage_${i}_${j}_$k.jpg');
+                  print('  Size: ${bannerBytes.length} bytes');
+                }
+              }
+            }
+          }
+        }
       }
 
+      // Add metadata
       formData.fields.add(MapEntry('metadata', jsonEncode(metadata)));
 
       print('FormData contents:');
@@ -230,12 +265,13 @@ class ApiService {
           .forEach((entry) => print('  ${entry.key}: ${entry.value}'));
 
       final response = await _dio.post(
-        'https://webhook.site/f97db724-a5b4-4579-808c-65320902072d',
+        "$baseUrl/views",
         data: formData,
         options: Options(
           headers: {
             'Content-Type': 'multipart/form-data',
             'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
           },
         ),
         onSendProgress: (sent, total) {
@@ -248,18 +284,46 @@ class ApiService {
       print('Response data: ${response.data}');
 
       if (response.statusCode == 200) {
-        print("✅ Data successfully uploaded");
+        print("Data uploaded successfully");
         return true;
       } else {
-        print("❌ Upload failed. Status: ${response.statusCode}");
+        print("Upload failed. Status: ${response.statusCode}");
         return false;
       }
     } catch (e) {
-      print("❌ Error uploading: $e");
+      print("Error uploading: $e");
       if (e is DioException) {
         print('Dio error response: ${e.response?.data}');
+        print('Dio error status: ${e.response?.statusCode}');
+        if (e.response?.statusCode == 413) {
+          print("Upload size too large!");
+        }
       }
       return false;
+    }
+  }
+
+  Future<List<ViewData>> fetchPublishedViews() async {
+    String? token = await Session().getUserToken();
+    print("Token: ${token ?? "No token available"}");
+
+    final url = Uri.parse('$baseUrl/views');
+    print('Requesting: $url'); // Debug
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    print('Status: ${response.statusCode}, Body: ${response.body}'); // Debug
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      final List<dynamic> viewsJson = jsonData['data'];
+      return viewsJson.map((json) => ViewData.fromJson(json)).toList();
+    } else {
+      throw Exception(
+          'Failed to load views: ${response.statusCode} - ${response.body}');
     }
   }
 }

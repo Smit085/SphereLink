@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:spherelink/core/apiService.dart';
 import 'package:spherelink/core/userSettings.dart';
 import 'package:spherelink/screens/PanoramaView.dart';
 import 'package:spherelink/screens/PanoramicWithMarkers.dart';
@@ -13,6 +11,7 @@ import 'package:spherelink/screens/PublishViewScreen.dart';
 import 'package:spherelink/utils/appColors.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
 
+import '../core/apiService.dart';
 import '../data/ViewData.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,7 +21,9 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   List<String> sortOptions = ["Name", "Date"];
   String selectedSortOption = "name";
   String currentMenu = "main";
@@ -40,21 +41,45 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
 
+  bool isLoadingPublished = true;
+  List<ViewData> publishedViews = [];
+  List<ViewData> filteredPublishedViews = [];
+  final GlobalKey<RefreshIndicatorState> _publishedRefreshKey =
+      GlobalKey<RefreshIndicatorState>();
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadViews();
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _refreshIndicatorKey.currentState?.show(); // Trigger on initial load
-    // });
+    _loadPublishedViews();
     searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
+    _tabController.dispose(); // Add this line
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPublishedViews() async {
+    setState(() => isLoadingPublished = true);
+    try {
+      final views = await ApiService().fetchPublishedViews();
+      setState(() {
+        publishedViews = views;
+        filteredPublishedViews = List.from(views);
+        isLoadingPublished = false;
+      });
+      print("Loaded ${views.length} published views");
+    } catch (e) {
+      setState(() => isLoadingPublished = false);
+      print("Error loading published views: $e");
+      showCustomSnackBar(context, Colors.red,
+          "Failed to load published views: $e", Colors.white, "", null);
+    }
   }
 
   void _onSearchChanged() {
@@ -63,13 +88,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void filterViews(String query) {
     setState(() {
-      if (query.isEmpty) {
-        filteredViews = List.from(savedViews);
+      final currentTab = _tabController.index;
+      if (currentTab == 0) {
+        // Local tab
+        if (query.isEmpty) {
+          filteredViews = List.from(savedViews);
+        } else {
+          filteredViews = savedViews
+              .where((view) =>
+                  view.viewName.toLowerCase().contains(query.toLowerCase()))
+              .toList();
+        }
       } else {
-        filteredViews = savedViews
-            .where((view) =>
-                view.viewName.toLowerCase().contains(query.toLowerCase()))
-            .toList();
+        // Published tab
+        if (query.isEmpty) {
+          filteredPublishedViews = List.from(publishedViews);
+        } else {
+          filteredPublishedViews = publishedViews
+              .where((view) =>
+                  view.viewName.toLowerCase().contains(query.toLowerCase()))
+              .toList();
+        }
       }
     });
   }
@@ -252,8 +291,14 @@ class _HomeScreenState extends State<HomeScreen> {
           case 'display_view':
             toggleDisplayView();
           case 'refresh':
-            _refreshIndicatorKey.currentState?.show();
-            _loadViews();
+            final currentTab = _tabController.index;
+            if (currentTab == 0) {
+              _refreshIndicatorKey.currentState?.show();
+              _loadViews();
+            } else {
+              _publishedRefreshKey.currentState?.show();
+              _loadPublishedViews();
+            }
             break;
         }
         currentMenu = 'main';
@@ -281,127 +326,113 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: AppColors.appprimaryBackgroundColor,
-        body: Stack(
-          children: [
-            Column(
-              children: [
-                Container(
-                  color: AppColors.appprimaryColor,
-                  padding: const EdgeInsets.only(left: 16),
-                  width: double.infinity,
-                  child: const TabBar(
-                    padding: EdgeInsets.only(top: 44),
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: AppColors.textColorPrimary,
-                    indicatorWeight: 3,
-                    dividerHeight: 0,
-                    labelPadding: EdgeInsets.only(top: 4),
-                    tabs: [
-                      Tab(text: "Local", height: 35),
-                      Tab(text: "Published", height: 35),
+    return Scaffold(
+      backgroundColor: AppColors.appprimaryBackgroundColor,
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              Container(
+                color: AppColors.appprimaryColor,
+                padding: const EdgeInsets.only(left: 16),
+                width: double.infinity,
+                child: TabBar(
+                  controller: _tabController,
+                  padding: const EdgeInsets.only(top: 44),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: AppColors.textColorPrimary,
+                  indicatorWeight: 3,
+                  dividerHeight: 0,
+                  labelPadding: const EdgeInsets.only(top: 4),
+                  tabs: const [
+                    Tab(text: "Local", height: 35),
+                    Tab(text: "Published", height: 35),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      RefreshIndicator(
+                        key: _refreshIndicatorKey,
+                        onRefresh: _loadViews,
+                        backgroundColor: Colors.white,
+                        color: Colors.blue,
+                        child: isLoading
+                            ? isListView
+                                ? ListView.builder(
+                                    itemCount: 8,
+                                    itemBuilder: (context, index) =>
+                                        _buildShimmerTile(),
+                                  )
+                                : GridView.builder(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 15,
+                                      childAspectRatio: 3 / 2,
+                                    ),
+                                    itemCount: 10,
+                                    itemBuilder: (context, index) =>
+                                        _buildShimmerGridTile(),
+                                  )
+                            : filteredViews.isEmpty
+                                ? _buildEmptyState()
+                                : isListView
+                                    ? _buildListView()
+                                    : _buildGridView(),
+                      ),
+                      RefreshIndicator(
+                        key: _publishedRefreshKey,
+                        onRefresh: _loadPublishedViews,
+                        backgroundColor: Colors.white,
+                        color: Colors.blue,
+                        child: isLoadingPublished
+                            ? isListView
+                                ? ListView.builder(
+                                    itemCount: 8,
+                                    itemBuilder: (context, index) =>
+                                        _buildShimmerTile(),
+                                  )
+                                : GridView.builder(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 15,
+                                      childAspectRatio: 3 / 2,
+                                    ),
+                                    itemCount: 10,
+                                    itemBuilder: (context, index) =>
+                                        _buildShimmerGridTile(),
+                                  )
+                            : filteredPublishedViews.isEmpty
+                                ? _buildEmptyState()
+                                : isListView
+                                    ? _buildPublishedListView()
+                                    : _buildPublishedGridView(),
+                      ),
                     ],
                   ),
                 ),
+              ),
+            ],
+          ),
+          Positioned(
+            top: 0,
+            left: 16,
+            right: 16,
+            child: Row(
+              children: [
                 Expanded(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: TabBarView(
-                      children: [
-                        RefreshIndicator(
-                          key: _refreshIndicatorKey,
-                          onRefresh: _loadViews,
-                          backgroundColor: Colors.white,
-                          color: Colors.blue,
-                          child: isLoading
-                              ? isListView
-                                  ? ListView.builder(
-                                      itemCount: 8,
-                                      itemBuilder: (context, index) =>
-                                          _buildShimmerTile(),
-                                    )
-                                  : GridView.builder(
-                                      gridDelegate:
-                                          const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 10,
-                                        mainAxisSpacing: 15,
-                                        childAspectRatio: 3 / 2,
-                                      ),
-                                      itemCount: 10,
-                                      itemBuilder: (context, index) =>
-                                          _buildShimmerGridTile(),
-                                    )
-                              : filteredViews.isEmpty
-                                  ? _buildEmptyState()
-                                  : isListView
-                                      ? _buildListView()
-                                      : _buildGridView(),
-                        ),
-                        const Center(
-                            child:
-                                Text("Published views will be displayed here")),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Positioned(
-              top: 0,
-              left: 16,
-              right: 16,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            spreadRadius: 1,
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Explore your views...',
-                          hintStyle: const TextStyle(fontSize: 14),
-                          prefixIcon: const Icon(Icons.search),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 0),
-                          suffixIcon: searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    searchController.clear();
-                                  },
-                                )
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(left: 5),
+                  child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.white,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -410,58 +441,100 @@ class _HomeScreenState extends State<HomeScreen> {
                           offset: const Offset(0, 3),
                         ),
                       ],
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.sort_rounded),
-                      onPressed: () {
-                        _showCustomMenu(context);
-                      },
+                    child: TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Explore your views...',
+                        hintStyle: const TextStyle(fontSize: 14),
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                        suffixIcon: searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  searchController.clear();
+                                },
+                              )
+                            : null,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(left: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.sort_rounded),
+                    onPressed: () {
+                      _showCustomMenu(context);
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        floatingActionButton: savedViews.isNotEmpty
-            ? Container(
-                width: 55,
-                height: 55,
-                decoration: const BoxDecoration(
-                  color: AppColors.appsecondaryColor,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const PanoramicWithMarkers()),
-                    );
-                  },
-                ),
-              )
-            : null,
+          ),
+        ],
       ),
+      floatingActionButton: savedViews.isNotEmpty
+          ? Container(
+              width: 55,
+              height: 55,
+              decoration: const BoxDecoration(
+                color: AppColors.appsecondaryColor,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.add, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const PanoramicWithMarkers()),
+                  );
+                },
+              ),
+            )
+          : null,
     );
   }
 
   Widget _buildEmptyState() {
+    final currentTab = _tabController.index;
     return RefreshIndicator(
-      onRefresh: _loadViews,
+      onRefresh: currentTab == 0 ? _loadViews : _loadPublishedViews,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.6,
           child: GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PanoramicWithMarkers(),
-                ),
-              );
+              if (currentTab == 0) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PanoramicWithMarkers(),
+                  ),
+                );
+              }
             },
             child: Center(
               child: FittedBox(
@@ -477,7 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     Text(
                       textAlign: TextAlign.center,
-                      savedViews.isEmpty
+                      currentTab == 0 && savedViews.isEmpty
                           ? "No views found! Tap to create one\nor Refresh the page."
                           : "No matching views found.",
                       style: const TextStyle(fontSize: 16),
@@ -616,9 +689,16 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(5),
-        child: view.thumbnailImage.existsSync()
-            ? Image.file(view.thumbnailImage,
-                width: 100, height: 60, fit: BoxFit.cover)
+        child: view.thumbnailImage != null && view.thumbnailImage!.existsSync()
+            ? Image.file(
+                view.thumbnailImage!, // Safe to use ! after null check
+                width: 100,
+                height: 60,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.image);
+                },
+              )
             : const Icon(Icons.image),
       ),
       title: Text(
@@ -636,8 +716,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       trailing: IconButton(
         onPressed: () => {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (context) => PublishViewScreen()))
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => PublishViewScreen(view: view)))
         },
         icon: const Icon(
           Icons.file_upload_outlined,
@@ -745,6 +827,210 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildPublishedListView() {
+    if (isGroupedView) {
+      return ListView.builder(
+        itemCount: groupedViews.length,
+        itemBuilder: (context, index) {
+          final group = groupedViews[index];
+          final groupName = group.key;
+          final groupItems = group.value;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+                child: Text(
+                  groupName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: groupItems.length,
+                itemBuilder: (context, subIndex) {
+                  final view = groupItems[subIndex];
+                  return _buildPublishedListTile(view);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      return ListView.builder(
+        itemCount: filteredPublishedViews.length,
+        itemBuilder: (context, index) {
+          final view = filteredPublishedViews[index];
+          return _buildPublishedListTile(view);
+        },
+      );
+    }
+  }
+
+  Widget _buildPublishedListTile(ViewData view) {
+    return ListTile(
+      onTap: () {
+        _showModalBottomSheet(view);
+      },
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(5),
+        child: view.thumbnailImageUrl != null
+            ? Image.network(
+                view.thumbnailImageUrl!,
+                width: 100,
+                height: 60,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.image);
+                },
+              )
+            : const Icon(Icons.image),
+      ),
+      title: Text(
+        view.viewName,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+        "${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+        "${view.dateTime.minute.toString().padLeft(2, '0')} "
+        "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ),
+      // No trailing publish button for published views since they're already published
+    );
+  }
+
+  Widget _buildPublishedGridView() {
+    if (isGroupedView) {
+      return ListView.builder(
+        itemCount: groupedViews.length,
+        itemBuilder: (context, index) {
+          final group = groupedViews[index];
+          final groupName = group.key;
+          final groupItems = group.value;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                child: Text(
+                  groupName,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
+                ),
+              ),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 15,
+                  childAspectRatio: 3 / 2,
+                ),
+                itemCount: groupItems.length,
+                itemBuilder: (context, subIndex) {
+                  final view = groupItems[subIndex];
+                  return _buildPublishedGridTile(view);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 15,
+          childAspectRatio: 3 / 2,
+        ),
+        itemCount: filteredPublishedViews.length,
+        itemBuilder: (context, index) {
+          final view = filteredPublishedViews[index];
+          return _buildPublishedGridTile(view);
+        },
+      );
+    }
+  }
+
+  Widget _buildPublishedGridTile(ViewData view) {
+    return GestureDetector(
+      onTap: () {
+        _showModalBottomSheet(view);
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            view.thumbnailImageUrl != null
+                ? Image.network(
+                    view.thumbnailImageUrl!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.videocam, color: Colors.grey);
+                    },
+                  )
+                : const Icon(Icons.videocam, color: Colors.grey),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.black54,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      view.viewName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "${view.dateTime.day}/${view.dateTime.month}/${view.dateTime.year} "
+                      "\t\t${view.dateTime.hour % 12 == 0 ? 12 : view.dateTime.hour % 12}:"
+                      "${view.dateTime.minute.toString().padLeft(2, '0')} "
+                      "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildGridTile(ViewData view) {
     return GestureDetector(
       onTap: () {
@@ -755,9 +1041,9 @@ class _HomeScreenState extends State<HomeScreen> {
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
-            view.thumbnailImage.existsSync()
+            view.thumbnailImage != null && view.thumbnailImage!.existsSync()
                 ? Image.file(
-                    view.thumbnailImage,
+                    view.thumbnailImage!,
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: double.infinity,
@@ -852,8 +1138,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
+                    onPressed: () => {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  PublishViewScreen(view: view)))
                     },
                     child: const Text("Publish",
                         style: TextStyle(color: Colors.black)),
@@ -894,7 +1184,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void sortByName() {
     setState(() {
-      filteredViews.sort((a, b) {
+      final currentTab = _tabController.index;
+      final viewsToSort =
+          currentTab == 0 ? filteredViews : filteredPublishedViews;
+      viewsToSort.sort((a, b) {
         return isAscendingName
             ? a.viewName.compareTo(b.viewName)
             : b.viewName.compareTo(a.viewName);
@@ -905,19 +1198,77 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void sortByDateTime() {
     setState(() {
-      filteredViews.sort((a, b) {
-        return isAscendingName
+      final currentTab = _tabController.index;
+      final viewsToSort =
+          currentTab == 0 ? filteredViews : filteredPublishedViews;
+      viewsToSort.sort((a, b) {
+        return isAscendingDateTime
             ? a.dateTime.compareTo(b.dateTime)
             : b.dateTime.compareTo(a.dateTime);
       });
-      isAscendingName = !isAscendingName;
+      isAscendingDateTime = !isAscendingDateTime;
     });
   }
 
   void groupByNone() {
     setState(() {
       isGroupedView = false;
-      filteredViews = List.from(savedViews);
+      final currentTab = _tabController.index;
+      if (currentTab == 0) {
+        filteredViews = List.from(savedViews);
+      } else {
+        filteredPublishedViews = List.from(publishedViews);
+      }
+    });
+  }
+
+  void groupByAlphabets() {
+    setState(() {
+      isGroupedView = true;
+      final currentTab = _tabController.index;
+      final views = currentTab == 0 ? savedViews : publishedViews;
+      final Map<String, List<ViewData>> group = {};
+      for (var view in views) {
+        final firstLetter = view.viewName[0].toUpperCase();
+        if (group.containsKey(firstLetter)) {
+          group[firstLetter]!.add(view);
+        } else {
+          group[firstLetter] = [view];
+        }
+      }
+      final sortedGroupKeys = group.keys.toList()..sort();
+      for (var key in sortedGroupKeys) {
+        group[key]!.sort((a, b) => a.viewName.compareTo(b.viewName));
+      }
+      groupedViews =
+          sortedGroupKeys.map((key) => MapEntry(key, group[key]!)).toList();
+      print(groupedViews);
+    });
+  }
+
+  void groupByName() {
+    setState(() {
+      isGroupedView = true;
+      final currentTab = _tabController.index;
+      final views = currentTab == 0 ? savedViews : publishedViews;
+      final Map<String, List<ViewData>> group = {};
+      for (var view in views) {
+        final words = view.viewName.split(RegExp(r'\s+'));
+        String groupKey = words.first;
+        groupKey = groupKey.replaceAll(RegExp(r'\d+$'), '').trim();
+        if (group.containsKey(groupKey)) {
+          group[groupKey]!.add(view);
+        } else {
+          group[groupKey] = [view];
+        }
+      }
+      final sortedGroupKeys = group.keys.toList()..sort();
+      for (var key in sortedGroupKeys) {
+        group[key]!.sort((a, b) => a.viewName.compareTo(b.viewName));
+      }
+      groupedViews =
+          sortedGroupKeys.map((key) => MapEntry(key, group[key]!)).toList();
+      print(groupedViews);
     });
   }
 
@@ -926,69 +1277,6 @@ class _HomeScreenState extends State<HomeScreen> {
       isListView = !isListView;
     });
     _userSettings.saveViewType(isListView);
-  }
-
-  void groupByName() {
-    setState(() {
-      isGroupedView = true;
-
-      final Map<String, List<ViewData>> group = {};
-
-      for (var view in savedViews) {
-        final words = view.viewName.split(RegExp(r'\s+'));
-        String groupKey = words.first;
-
-        groupKey = groupKey.replaceAll(RegExp(r'\d+$'), '').trim();
-
-        if (group.containsKey(groupKey)) {
-          group[groupKey]!.add(view);
-        } else {
-          group[groupKey] = [view];
-        }
-      }
-
-      final sortedGroupKeys = group.keys.toList()..sort();
-      for (var key in sortedGroupKeys) {
-        group[key]!.sort((a, b) => a.viewName.compareTo(b.viewName));
-      }
-
-      groupedViews =
-          sortedGroupKeys.map((key) => MapEntry(key, group[key]!)).toList();
-
-      print(groupedViews);
-    });
-  }
-
-  void groupByAlphabets() {
-    setState(() {
-      isGroupedView = true;
-
-      final Map<String, List<ViewData>> group = {};
-      for (var view in savedViews) {
-        final firstLetter = view.viewName[0].toUpperCase();
-        if (group.containsKey(firstLetter)) {
-          group[firstLetter]!.add(view);
-        } else {
-          group[firstLetter] = [view];
-        }
-      }
-
-      final sortedGroupKeys = group.keys.toList()..sort();
-
-      for (var key in sortedGroupKeys) {
-        group[key]!.sort((a, b) => a.viewName.compareTo(b.viewName));
-      }
-
-      final sortedGroupsList = <MapEntry<String, List<ViewData>>>[];
-      for (var key in sortedGroupKeys) {
-        sortedGroupsList.add(MapEntry(key, group[key]!));
-      }
-
-      setState(() {
-        groupedViews = sortedGroupsList;
-      });
-      print(groupedViews);
-    });
   }
 
   Future<void> _deleteView(ViewData view) async {
