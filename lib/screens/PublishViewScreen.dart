@@ -2,15 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mappls_gl/mappls_gl.dart';
+import 'package:spherelink/core/apiService.dart';
+import 'package:spherelink/data/ViewData.dart';
+import 'package:spherelink/widget/customSnackbar.dart';
 import '../utils/appColors.dart';
 import 'MapSelectionScreen.dart';
 
-void main() {
-  runApp(const MaterialApp(home: PublishViewScreen()));
-}
-
 class PublishViewScreen extends StatefulWidget {
-  const PublishViewScreen({super.key});
+  final ViewData view;
+  const PublishViewScreen({super.key, required this.view});
 
   @override
   _PublishViewScreenState createState() => _PublishViewScreenState();
@@ -18,13 +19,21 @@ class PublishViewScreen extends StatefulWidget {
 
 class _PublishViewScreenState extends State<PublishViewScreen> {
   final _formKey = GlobalKey<FormState>();
-
+  late double viewLatitude;
+  late double viewLongitude;
   File? _thumbnail;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
   bool _isPublishing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _thumbnail = widget.view.thumbnailImage;
+    _titleController.text = widget.view.viewName;
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -47,8 +56,11 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
 
     if (selectedLocation != null && selectedLocation is Map<String, double>) {
       setState(() {
+        viewLatitude = selectedLocation['latitude']!;
+        viewLongitude = selectedLocation['longitude']!;
+
         _locationController.text =
-            "Lat: ${selectedLocation['latitude']}, Lng: ${selectedLocation['longitude']}";
+            "Lat: ${viewLatitude.toStringAsFixed(4)}°   Lng: ${viewLongitude.toStringAsFixed(4)}°";
       });
     }
   }
@@ -57,14 +69,23 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isPublishing = true);
 
-      await Future.delayed(const Duration(seconds: 2));
+      widget.view.thumbnailImage = _thumbnail!;
+      widget.view.viewName = _titleController.text;
+      widget.view.description = _descriptionController.text;
+      widget.view.location = LatLng(viewLatitude, viewLongitude);
+      widget.view.dateTime = DateTime.now();
+      bool response = await ApiService().syncDataToServer(widget.view);
 
-      setState(() => _isPublishing = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('View Published Successfully!')),
-      );
-      Navigator.pop(context);
+      if (response) {
+        setState(() => _isPublishing = false);
+        showCustomSnackBar(context, Colors.green,
+            "View Published Successfully!", Colors.white, "", () => {});
+        Navigator.pop(context);
+      } else {
+        setState(() => _isPublishing = false);
+        showCustomSnackBar(context, Colors.red,
+            "Upload failed! Please try again.", Colors.white, "", () => {});
+      }
     }
   }
 
@@ -111,7 +132,7 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => _showConfirmationDialog(context),
         ),
       ),
       body: SingleChildScrollView(
@@ -129,36 +150,49 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.textColorPrimary.withAlpha(50),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade400),
                   ),
-                  child: _thumbnail != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            _thumbnail!,
-                            width: double.infinity,
-                            height: 180,
-                            fit: BoxFit.contain,
-                          ),
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.camera_alt, size: 40),
-                            const SizedBox(height: 10),
-                            Text(
-                              "Tap to select a thumbnail",
-                              style: GoogleFonts.lato(
-                                  fontSize: 14, color: Colors.grey[600]),
-                            ),
-                          ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      children: [
+                        Image.file(
+                          _thumbnail ?? File('assets/default_thumbnail.jpg'),
+                          width: double.infinity,
+                          height: 180,
+                          fit: BoxFit.cover,
                         ),
+                        Container(
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                        Center(
+                          // Center the Column
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.camera_alt,
+                                  size: 40, color: Colors.white),
+                              const SizedBox(height: 10),
+                              Text(
+                                "Tap to change the thumbnail",
+                                style: GoogleFonts.lato(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _titleController,
+                maxLength: 100,
                 decoration: const InputDecoration(
+                  counterText: '',
                   labelText: "View Title",
                   border: OutlineInputBorder(),
                 ),
@@ -167,6 +201,8 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                onTap: _selectLocation,
                 controller: _locationController,
                 readOnly: true,
                 decoration: InputDecoration(
@@ -182,10 +218,14 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 controller: _descriptionController,
-                maxLines: 4,
+                maxLines: 5,
+                maxLength: 800,
                 decoration: const InputDecoration(
+                  alignLabelWithHint: true,
                   labelText: "Description",
+                  labelStyle: TextStyle(),
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) =>
@@ -203,11 +243,15 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
                         borderRadius: BorderRadius.circular(8)),
                   ),
                   icon: _isPublishing
-                      ? const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        )
-                      : const Icon(Icons.publish, color: Colors.white),
+                      ? const SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ))
+                      : const Icon(Icons.file_upload_outlined,
+                          size: 24, color: Colors.white),
                   label: Text(
                     _isPublishing ? "Publishing..." : "Publish View",
                     style: const TextStyle(fontSize: 16, color: Colors.white),
@@ -218,6 +262,49 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          actionsPadding: const EdgeInsets.only(right: 16, bottom: 16),
+          backgroundColor: AppColors.appsecondaryColor,
+          title: const Text(
+            "Confirm",
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            "Are you sure you want to go back without publishing this view?",
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                "No",
+                style: TextStyle(
+                    color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                "Yes",
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
