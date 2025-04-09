@@ -241,7 +241,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                         ),
                 );
               }).toList(),
-              child: Image.file(currentImage!.image),
+              child: Image.file(currentImage!.image!),
               onImageLoad: () {
                 if (!_isFirstLoad) {
                   _isFirstLoad = true;
@@ -423,7 +423,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                                           child: SizedBox(
                                             width: 120,
                                             child: Image.file(
-                                              panoramaImages[index].image,
+                                              panoramaImages[index].image!,
                                               fit: BoxFit.cover,
                                             ),
                                           ),
@@ -1753,10 +1753,10 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
       await viewsDir.create(recursive: true);
     }
 
-    final originalImagePath = panoramaImages.first.image.path;
+    final originalImagePath = panoramaImages.first.image?.path;
 
     final thumbnailPath =
-        await _compressAndSaveThumbnail(originalImagePath, viewName);
+        await _compressAndSaveThumbnail(originalImagePath!, viewName);
 
     final newView = ViewData(
       panoramaImages: panoramaImages,

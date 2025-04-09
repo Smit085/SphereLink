@@ -15,7 +15,6 @@ import '../data/PanoramaImage.dart';
 import '../data/ViewData.dart';
 import '../utils/RippleWaveIcon.dart';
 import '../utils/appColors.dart';
-import '../utils/nipPainter.dart';
 
 class PanoramaView extends StatefulWidget {
   final ViewData view;
@@ -235,7 +234,24 @@ class _PanoramaViewState extends State<PanoramaView>
                         ),
                 );
               }).toList(),
-              child: Image.file(currentImage!.image),
+              child: currentImage?.image != null &&
+                      currentImage!.image!.existsSync()
+                  ? Image.file(
+                      currentImage.image!,
+                      errorBuilder: (BuildContext context, Object error,
+                          StackTrace? stackTrace) {
+                        return Image.asset('assets/image_load_failed.png');
+                      },
+                    )
+                  : currentImage?.imageUrl != null
+                      ? Image.network(
+                          currentImage!.imageUrl!,
+                          errorBuilder: (BuildContext context, Object error,
+                              StackTrace? stackTrace) {
+                            return Image.asset('assets/image_load_failed.png');
+                          },
+                        )
+                      : Image.asset('assets/image_load_failed.png'),
               onImageLoad: () {
                 if (!_isFirstLoad) {
                   _isFirstLoad = true;
@@ -370,10 +386,38 @@ class _PanoramaViewState extends State<PanoramaView>
                                               BorderRadius.circular(2),
                                           child: SizedBox(
                                             width: 120,
-                                            child: Image.file(
-                                              panoramaImages[index].image,
-                                              fit: BoxFit.cover,
-                                            ),
+                                            child: panoramaImages[index]
+                                                            .image !=
+                                                        null &&
+                                                    panoramaImages[index]
+                                                        .image!
+                                                        .existsSync()
+                                                ? Image.file(
+                                                    panoramaImages[index]
+                                                        .image!,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (BuildContext context,
+                                                            Object error,
+                                                            StackTrace?
+                                                                stackTrace) {
+                                                      return Image.asset(
+                                                          'assets/image_load_failed.png');
+                                                    },
+                                                  )
+                                                : Image.network(
+                                                    panoramaImages[index]
+                                                        .imageUrl!,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (BuildContext context,
+                                                            Object error,
+                                                            StackTrace?
+                                                                stackTrace) {
+                                                      return Image.asset(
+                                                          'assets/image_load_failed.png');
+                                                    },
+                                                  ),
                                           ),
                                         ),
                                       ),
@@ -1343,14 +1387,41 @@ class _PanoramaViewState extends State<PanoramaView>
                                             final File? imageFile =
                                                 selectedMarker
                                                     .bannerImage![index];
+                                            // final String? imageUrl =
+                                            //     selectedMarker
+                                            //         .bannerImageUrl![index];
                                             return ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              child: Image.file(
-                                                imageFile!,
-                                                fit: BoxFit.cover,
-                                              ),
-                                            );
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                child: imageFile != null &&
+                                                        imageFile.existsSync()
+                                                    ? Image.file(
+                                                        imageFile,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder:
+                                                            (BuildContext
+                                                                    context,
+                                                                Object error,
+                                                                StackTrace?
+                                                                    stackTrace) {
+                                                          return Image.asset(
+                                                              'assets/image_load_failed.png');
+                                                        },
+                                                      )
+                                                    // : Image.network(
+                                                    //     imageUrl!,
+                                                    //     fit: BoxFit.cover,
+                                                    //     errorBuilder:
+                                                    //         (BuildContext context,
+                                                    //             Object error,
+                                                    //             StackTrace?
+                                                    //                 stackTrace) {
+                                                    //       return Image.asset(
+                                                    //           'assets/image_load_failed.png');
+                                                    //     },
+                                                    //   ),
+                                                    : Image.asset(
+                                                        'assets/image_load_failed.png'));
                                           },
                                         ),
                                       ),

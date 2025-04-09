@@ -81,10 +81,10 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       await viewsDir.create(recursive: true);
     }
 
-    final originalImagePath = panoramaImages.first.image.path;
+    final originalImagePath = panoramaImages.first.image?.path;
 
     final thumbnailPath =
-        await _compressAndSaveThumbnail(originalImagePath, viewName);
+        await _compressAndSaveThumbnail(originalImagePath!, viewName);
 
     final newView = ViewData(
       panoramaImages: panoramaImages,
@@ -337,8 +337,8 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       setState(() {
         for (var pickedImage in pickedImages) {
           int imageName = panoramaImages.length + 1;
-          panoramaImages
-              .add(PanoramaImage(File(pickedImage.path), imageName.toString()));
+          panoramaImages.add(
+              PanoramaImage(File(pickedImage.path), "", imageName.toString()));
         }
       });
     }
@@ -382,12 +382,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
           setState(() {
             int imageName = panoramaImages.length + 1;
             panoramaImages
-                .add(PanoramaImage(mergedImageFile, imageName.toString()));
+                .add(PanoramaImage(mergedImageFile, "", imageName.toString()));
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
                 duration: Duration(milliseconds: 800),
-                content: Text('Images successfully merged.')),
+                content: Text('Images merged successfully.')),
           );
         } else {
           // Show an error message if merging failed
@@ -473,7 +473,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     ),
                   );
                 }).toList(),
-                child: Image.file(currentImage!.image),
+                child: Image.file(currentImage!.image!),
                 onImageLoad: () {
                   if (!_isFirstLoad) {
                     _isFirstLoad = true;
@@ -734,7 +734,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                                           width: 120,
                                           height: 120,
                                           child: Image.file(
-                                            panoramaImages[index].image,
+                                            panoramaImages[index].image!,
                                             fit: BoxFit.cover,
                                           ),
                                         ),
