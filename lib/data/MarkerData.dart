@@ -17,7 +17,8 @@ class MarkerData {
   int nextImageId;
   double selectedIconRotationRadians;
   String selectedAction;
-  List<File?>? bannerImage;
+  List<File?>? bannerImage; // Keep File for local
+  List<String>? bannerImageUrl; // Add for online URLs
   String? link;
   String? linkLabel;
 
@@ -35,6 +36,7 @@ class MarkerData {
       this.subTitle = "",
       this.selectedIcon = Icons.location_pin,
       this.bannerImage,
+      this.bannerImageUrl,
       this.link,
       this.phoneNumber,
       this.linkLabel});
@@ -55,8 +57,8 @@ class MarkerData {
       "selectedIconColor": selectedIconColor.value,
       "nextImageId": nextImageId,
       "selectedAction": selectedAction,
-      "bannerImages":
-          bannerImage?.map((file) => file?.path).toList(), // Serialize paths
+      'bannerImages': bannerImage?.map((file) => file?.path).toList(),
+      'bannerImageUrl': bannerImageUrl,
       "link": link,
       "LinkLabel": linkLabel,
     };
@@ -82,6 +84,11 @@ class MarkerData {
       bannerImage:
           (json["bannerImages"] as List?)?.map((path) => File(path)).toList() ??
               [],
+      bannerImageUrl: json['markerBannerImages'] != null
+          ? (json['markerBannerImages'] as List)
+              .map((banner) => banner['imagePath'] as String)
+              .toList()
+          : null,
       link: json["link"],
     );
   }
