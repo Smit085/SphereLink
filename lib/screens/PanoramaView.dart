@@ -406,18 +406,31 @@ class _PanoramaViewState extends State<PanoramaView>
                                                           'assets/image_load_failed.png');
                                                     },
                                                   )
-                                                : Image.network(
-                                                    panoramaImages[index]
-                                                        .imageUrl!,
+                                                : CachedNetworkImage(
+                                                    imageUrl:
+                                                        panoramaImages[index]
+                                                            .imageUrl!,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (BuildContext context,
-                                                            Object error,
-                                                            StackTrace?
-                                                                stackTrace) {
-                                                      return Image.asset(
-                                                          'assets/image_load_failed.png');
-                                                    },
+                                                    placeholder:
+                                                        (context, url) =>
+                                                            const Center(
+                                                      child: SizedBox(
+                                                        width: 15,
+                                                        height: 15,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    errorWidget:
+                                                        (context, url, error) =>
+                                                            Image.asset(
+                                                      'assets/image_load_failed.png',
+                                                    ),
+                                                    memCacheWidth:
+                                                        400, // Optimize GPU memory
                                                   ),
                                           ),
                                         ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -883,14 +884,23 @@ class _HomeScreenState extends State<HomeScreen>
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(5),
         child: view.thumbnailImageUrl != null
-            ? Image.network(
-                view.thumbnailImageUrl!,
+            ? CachedNetworkImage(
+                imageUrl: view.thumbnailImageUrl!,
                 width: 100,
                 height: 60,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(Icons.image);
-                },
+                placeholder: (context, url) => const Center(
+                  child: SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => const Icon(Icons.image),
+                memCacheWidth: 400, // Optimize GPU memory
               )
             : const Icon(Icons.image),
       ),
@@ -981,14 +991,24 @@ class _HomeScreenState extends State<HomeScreen>
         child: Stack(
           children: [
             view.thumbnailImageUrl != null
-                ? Image.network(
-                    view.thumbnailImageUrl!,
-                    fit: BoxFit.cover,
+                ? CachedNetworkImage(
+                    imageUrl: view.thumbnailImageUrl!,
                     width: double.infinity,
                     height: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(Icons.videocam, color: Colors.grey);
-                    },
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const Center(
+                      child: SizedBox(
+                        width: 15,
+                        height: 15,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) =>
+                        const Icon(Icons.image),
+                    memCacheWidth: 400,
                   )
                 : const Icon(Icons.videocam, color: Colors.grey),
             Positioned(
