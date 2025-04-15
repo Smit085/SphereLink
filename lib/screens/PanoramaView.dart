@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_radio_grouped_button/custom_radio_grouped_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1076,23 +1077,23 @@ class _PanoramaViewState extends State<PanoramaView>
                               // Icons (Share + Close)
                               Row(
                                 children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      // TODO: Add share functionality
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.grey.withOpacity(0.7),
-                                      ),
-                                      padding: const EdgeInsets.all(6),
-                                      child: const Icon(
-                                        Icons.share_rounded,
-                                        size: 20,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
+                                  // GestureDetector(
+                                  //   onTap: () {
+                                  //     // TODO: Add share functionality
+                                  //   },
+                                  //   child: Container(
+                                  //     decoration: BoxDecoration(
+                                  //       shape: BoxShape.circle,
+                                  //       color: Colors.grey.withOpacity(0.7),
+                                  //     ),
+                                  //     padding: const EdgeInsets.all(6),
+                                  //     child: const Icon(
+                                  //       Icons.share_rounded,
+                                  //       size: 20,
+                                  //       color: Colors.white,
+                                  //     ),
+                                  //   ),
+                                  // ),
                                   const SizedBox(width: 12),
                                   GestureDetector(
                                     onTap: _closeSheetFully,
@@ -1373,7 +1374,7 @@ class _PanoramaViewState extends State<PanoramaView>
                                         ],
                                       ),
 
-                                      //Photos
+// Photos tab
                                       Padding(
                                         padding: const EdgeInsets.all(8.0),
                                         child: MasonryGridView.count(
@@ -1381,47 +1382,76 @@ class _PanoramaViewState extends State<PanoramaView>
                                           mainAxisSpacing: 8,
                                           crossAxisSpacing: 8,
                                           itemCount: selectedMarker
+                                                  .bannerImageUrl?.length ??
+                                              selectedMarker
                                                   .bannerImage?.length ??
                                               0,
                                           itemBuilder: (context, index) {
-                                            final File? imageFile =
-                                                selectedMarker
-                                                    .bannerImage![index];
-                                            // final String? imageUrl =
-                                            //     selectedMarker
-                                            //         .bannerImageUrl![index];
                                             return ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                child: imageFile != null &&
-                                                        imageFile.existsSync()
-                                                    ? Image.file(
-                                                        imageFile,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder:
-                                                            (BuildContext
-                                                                    context,
-                                                                Object error,
-                                                                StackTrace?
-                                                                    stackTrace) {
-                                                          return Image.asset(
-                                                              'assets/image_load_failed.png');
-                                                        },
-                                                      )
-                                                    // : Image.network(
-                                                    //     imageUrl!,
-                                                    //     fit: BoxFit.cover,
-                                                    //     errorBuilder:
-                                                    //         (BuildContext context,
-                                                    //             Object error,
-                                                    //             StackTrace?
-                                                    //                 stackTrace) {
-                                                    //       return Image.asset(
-                                                    //           'assets/image_load_failed.png');
-                                                    //     },
-                                                    //   ),
-                                                    : Image.asset(
-                                                        'assets/image_load_failed.png'));
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: selectedMarker
+                                                              .bannerImage !=
+                                                          null &&
+                                                      index <
+                                                          selectedMarker
+                                                              .bannerImage!
+                                                              .length &&
+                                                      selectedMarker
+                                                                  .bannerImage![
+                                                              index] !=
+                                                          null &&
+                                                      selectedMarker
+                                                          .bannerImage![index]!
+                                                          .existsSync()
+                                                  ? Image.file(
+                                                      selectedMarker
+                                                          .bannerImage![index]!,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (BuildContext context,
+                                                              Object error,
+                                                              StackTrace?
+                                                                  stackTrace) {
+                                                        return Image.asset(
+                                                            'assets/image_load_failed.png');
+                                                      },
+                                                    )
+                                                  : selectedMarker.bannerImageUrl !=
+                                                              null &&
+                                                          index <
+                                                              selectedMarker
+                                                                  .bannerImageUrl!
+                                                                  .length &&
+                                                          selectedMarker
+                                                              .bannerImageUrl![
+                                                                  index]
+                                                              .isNotEmpty
+                                                      ? CachedNetworkImage(
+                                                          imageUrl: selectedMarker
+                                                                  .bannerImageUrl![
+                                                              index],
+                                                          fit: BoxFit.cover,
+                                                          placeholder:
+                                                              (context, url) =>
+                                                                  const Center(
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          ),
+                                                          errorWidget: (context,
+                                                                  url, error) =>
+                                                              Image.asset(
+                                                            'assets/image_load_failed.png',
+                                                          ),
+                                                          memCacheWidth:
+                                                              400, // Optimize GPU memory
+                                                        )
+                                                      : Image.asset(
+                                                          'assets/image_load_failed.png'),
+                                            );
                                           },
                                         ),
                                       ),

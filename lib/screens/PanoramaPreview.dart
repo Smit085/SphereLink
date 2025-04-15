@@ -1084,23 +1084,23 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                               // Icons (Share + Close)
                               Row(
                                 children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      // TODO: Add share functionality
-                                    },
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.grey.withOpacity(0.7),
-                                      ),
-                                      padding: const EdgeInsets.all(6),
-                                      child: const Icon(
-                                        Icons.share_rounded,
-                                        size: 20,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
+                                  // GestureDetector(
+                                  //   onTap: () {
+                                  //     // TODO: Add share functionality
+                                  //   },
+                                  //   child: Container(
+                                  //     decoration: BoxDecoration(
+                                  //       shape: BoxShape.circle,
+                                  //       color: Colors.grey.withOpacity(0.7),
+                                  //     ),
+                                  //     padding: const EdgeInsets.all(6),
+                                  //     child: const Icon(
+                                  //       Icons.share_rounded,
+                                  //       size: 20,
+                                  //       color: Colors.white,
+                                  //     ),
+                                  //   ),
+                                  // ),
                                   const SizedBox(width: 12),
                                   GestureDetector(
                                     onTap: _closeSheetFully,
