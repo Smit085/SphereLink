@@ -1785,10 +1785,10 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
       builder: (context) {
         return AlertDialog(
           actionsPadding: const EdgeInsets.all(8),
-          title: Text("Save Panorama View"),
+          title: const Text("Save Panorama View"),
           content: TextField(
             controller: nameController,
-            decoration: InputDecoration(hintText: "Enter view name"),
+            decoration: const InputDecoration(hintText: "Enter view name"),
           ),
           actions: [
             TextButton(
@@ -1798,7 +1798,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
                   _isLoading = false;
                 })
               },
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () {

@@ -715,18 +715,26 @@ class _HomeScreenState extends State<HomeScreen>
         "${view.dateTime.hour >= 12 ? 'PM' : 'AM'}",
         style: const TextStyle(fontSize: 12, color: Colors.grey),
       ),
-      trailing: IconButton(
-        onPressed: () => {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => PublishViewScreen(view: view)))
-        },
-        icon: const Icon(
-          Icons.file_upload_outlined,
-          color: Colors.blue,
-        ),
-      ),
+      trailing: !view.isPublished
+          ? IconButton(
+              onPressed: () async {
+                view.isPublished = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PublishViewScreen(view: view),
+                  ),
+                );
+                if (view.isPublished) {
+                  await _saveView(view);
+                }
+                setState(() {});
+              },
+              icon: const Icon(
+                Icons.file_upload_outlined,
+                color: Colors.blue,
+              ),
+            )
+          : const SizedBox(),
     );
   }
 
@@ -1109,6 +1117,43 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Future<void> _saveView(ViewData view) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final viewsDir = Directory('${directory.path}/views');
+      if (!await viewsDir.exists()) {
+        await viewsDir.create(recursive: true);
+      }
+
+      final jsonPath = '${viewsDir.path}/${view.viewName}.json';
+      final file = File(jsonPath);
+
+      // Ensure the file exists (optional, for safety)
+      if (!await file.exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("View '${view.viewName}' not found")),
+          );
+        }
+        return;
+      }
+
+      await file.writeAsString(jsonEncode(view.toJson()));
+
+      if (mounted) {
+        print(
+            'Updated view: ${view.viewName}, isPublished: ${view.isPublished}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to update view: $e")),
+        );
+      }
+      print('Error updating view: $e');
+    }
+  }
+
   void _showModalBottomSheet(ViewData view) {
     showModalBottomSheet(
       context: context,
@@ -1158,12 +1203,28 @@ class _HomeScreenState extends State<HomeScreen>
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () => {
-                      Navigator.push(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      if (!view.isPublished) {
+                        view.isPublished = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>
-                                  PublishViewScreen(view: view)))
+                            builder: (context) => PublishViewScreen(view: view),
+                          ),
+                        );
+                        if (view.isPublished) {
+                          await _saveView(view); // Save the updated view
+                        }
+                        setState(() {});
+                      } else {
+                        showCustomSnackBar(
+                            context,
+                            Colors.red,
+                            "View already published!",
+                            Colors.white,
+                            "",
+                            () => {});
+                      }
                     },
                     child: const Text("Publish",
                         style: TextStyle(color: Colors.black)),

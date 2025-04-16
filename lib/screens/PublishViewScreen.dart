@@ -80,7 +80,7 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
         setState(() => _isPublishing = false);
         showCustomSnackBar(context, Colors.green,
             "View Published Successfully!", Colors.white, "", () => {});
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       } else {
         setState(() => _isPublishing = false);
         showCustomSnackBar(context, Colors.red,

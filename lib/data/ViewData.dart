@@ -6,17 +6,19 @@ import 'PanoramaImage.dart';
 class ViewData {
   List<PanoramaImage> panoramaImages;
   String viewName;
-  File? thumbnailImage; // Local file (null from server)
-  String? thumbnailImageUrl; // URL from server
+  File? thumbnailImage;
+  String? thumbnailImageUrl;
   DateTime dateTime;
   LatLng? location;
   String? description;
+  bool isPublished;
 
   ViewData({
     this.location,
     this.description,
     this.thumbnailImageUrl,
     this.thumbnailImage,
+    this.isPublished = false,
     required this.panoramaImages,
     required this.viewName,
     required this.dateTime,
@@ -32,7 +34,8 @@ class ViewData {
       "location": location != null
           ? {"latitude": location!.latitude, "longitude": location!.longitude}
           : null,
-      "description": description?.toString()
+      "description": description?.toString(),
+      'isPublished': isPublished,
     };
   }
 
@@ -55,6 +58,7 @@ class ViewData {
             )
           : null,
       description: json["description"] as String?,
+      isPublished: json['isPublished'] as bool? ?? false,
     );
   }
 }
