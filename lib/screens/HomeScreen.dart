@@ -1164,7 +1164,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       builder: (context) {
         return Container(
-          height: 270,
+          height: _tabController.index == 1 ? 170 : 270,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(
@@ -1189,47 +1189,50 @@ class _HomeScreenState extends State<HomeScreen>
                         style: TextStyle(color: Colors.black)),
                   ),
                 ),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showRenameDialog(context, view);
-                    },
-                    child: const Text("Rename",
-                        style: TextStyle(color: Colors.black)),
+                if (_tabController.index == 0)
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showRenameDialog(context, view);
+                      },
+                      child: const Text("Rename",
+                          style: TextStyle(color: Colors.black)),
+                    ),
                   ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      if (!view.isPublished) {
-                        view.isPublished = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PublishViewScreen(view: view),
-                          ),
-                        );
-                        if (view.isPublished) {
-                          await _saveView(view); // Save the updated view
-                        }
-                        setState(() {});
-                      } else {
-                        showCustomSnackBar(
+                if (_tabController.index == 0)
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        if (!view.isPublished) {
+                          view.isPublished = await Navigator.push(
                             context,
-                            Colors.red,
-                            "View already published!",
-                            Colors.white,
-                            "",
-                            () => {});
-                      }
-                    },
-                    child: const Text("Publish",
-                        style: TextStyle(color: Colors.black)),
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  PublishViewScreen(view: view),
+                            ),
+                          );
+                          if (view.isPublished) {
+                            await _saveView(view); // Save the updated view
+                          }
+                          setState(() {});
+                        } else {
+                          showCustomSnackBar(
+                              context,
+                              Colors.red,
+                              "View already published!",
+                              Colors.white,
+                              "",
+                              () => {});
+                        }
+                      },
+                      child: const Text("Publish",
+                          style: TextStyle(color: Colors.black)),
+                    ),
                   ),
-                ),
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
