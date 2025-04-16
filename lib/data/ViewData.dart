@@ -4,6 +4,7 @@ import 'package:mappls_gl/mappls_gl.dart';
 import 'PanoramaImage.dart';
 
 class ViewData {
+  final String? viewId;
   List<PanoramaImage> panoramaImages;
   String viewName;
   File? thumbnailImage;
@@ -14,6 +15,7 @@ class ViewData {
   bool isPublished;
 
   ViewData({
+    this.viewId,
     this.location,
     this.description,
     this.thumbnailImageUrl,
@@ -41,6 +43,7 @@ class ViewData {
 
   static ViewData fromJson(Map<String, dynamic> json) {
     return ViewData(
+      viewId: json['viewId']?.toString(),
       panoramaImages: (json["panoramaImages"] as List)
           .map((e) => PanoramaImage.fromJson(e as Map<String, dynamic>))
           .toList(),

@@ -387,6 +387,34 @@ class ApiService {
       return false;
     }
   }
+
+  Future<bool> deleteView(String viewId) async {
+    try {
+      String? token = await Session().getUserToken();
+      print("Token: ${token ?? "No token available"}");
+
+      final response = await _dio.delete(
+        "$baseUrl/views/$viewId",
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error deleting view: $e");
+      if (e is DioException) {
+        print('Dio error response: ${e.response?.data}');
+        print('Dio error status: ${e.response?.statusCode}');
+      }
+      return false;
+    }
+  }
 }
 
 class RetryInterceptor extends Interceptor {

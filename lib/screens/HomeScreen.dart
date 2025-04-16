@@ -24,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
+  final ApiService _apiService = ApiService();
   late TabController _tabController;
   List<String> sortOptions = ["Name", "Date"];
   String selectedSortOption = "name";
@@ -1239,7 +1240,7 @@ class _HomeScreenState extends State<HomeScreen>
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
                       _showDeleteConfirmationDialog(context, view);
                     },
@@ -1519,8 +1520,25 @@ class _HomeScreenState extends State<HomeScreen>
               },
             ),
             TextButton(
-              onPressed: () {
-                _deleteView(view);
+              onPressed: () async {
+                if (_tabController.index == 0) {
+                  _deleteView(view);
+                } else {
+                  bool success = await _apiService.deleteView(view.viewId!);
+                  if (success) {
+                    showCustomSnackBar(
+                        context,
+                        Colors.green,
+                        "View deleted successfully",
+                        Colors.white,
+                        "",
+                        () => {});
+                    _loadPublishedViews();
+                  } else {
+                    showCustomSnackBar(context, Colors.red,
+                        "Failed to delete view", Colors.white, "", () => {});
+                  }
+                }
                 Navigator.of(context).pop();
               },
               child: const Text(
