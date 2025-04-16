@@ -14,6 +14,16 @@ class Session {
     return prefs.getString('username');
   }
 
+  Future<void> saveLastName(String lastName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lastName', lastName);
+  }
+
+  Future<String?> getLastName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('lastName');
+  }
+
   Future<void> savePhone(String phoneNumber) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('phoneNumber', phoneNumber);
@@ -34,9 +44,9 @@ class Session {
     return prefs.getString('email');
   }
 
-  Future<void> saveProfileImagePath(String path) async {
+  Future<void> saveProfileImagePath(String? path) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('profileImagePath', path);
+    await prefs.setString('profileImagePath', path!);
   }
 
   Future<String?> getProfileImagePath() async {

@@ -326,6 +326,67 @@ class ApiService {
           'Failed to load views: ${response.statusCode} - ${response.body}');
     }
   }
+
+  Future<bool> updateUserProfile({
+    required String firstName,
+    required String lastName,
+    required String phoneNumber,
+    File? profileImage,
+  }) async {
+    try {
+      String? token = await Session().getUserToken();
+      print("Token: ${token ?? "No token available"}");
+
+      FormData formData = FormData();
+
+      // Add text fields
+      formData.fields.addAll([
+        MapEntry('firstName', firstName),
+        MapEntry('lastName', lastName),
+        MapEntry('phoneNumber', phoneNumber),
+      ]);
+
+      // Add profile image if provided
+      if (profileImage != null && await profileImage.exists()) {
+        Uint8List? imageBytes = await getOriginalImage(profileImage);
+        if (imageBytes != null) {
+          formData.files.add(MapEntry(
+            'profileImage',
+            MultipartFile.fromBytes(
+              imageBytes,
+              filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+              contentType: MediaType('image', 'jpeg'),
+            ),
+          ));
+          print('Profile image size: ${imageBytes.length} bytes');
+        }
+      }
+
+      final response = await _dio.put(
+        "$baseUrl/users/profile",
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error updating profile: $e");
+      if (e is DioException) {
+        print('Dio error response: ${e.response?.data}');
+        print('Dio error status: ${e.response?.statusCode}');
+      }
+      return false;
+    }
+  }
 }
 
 class RetryInterceptor extends Interceptor {

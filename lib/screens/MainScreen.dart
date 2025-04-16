@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:android_intent_plus/android_intent.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -24,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   String _currentLocation = "Tap to fetch location";
   String _username = "Guest User";
+  String? profileImageUrl;
 
   static final List<Widget> _widgetOptions = <Widget>[
     const HomeScreen(),
@@ -44,10 +46,12 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _fetchUsername() async {
-    String? storedUsername = await Session().getSession();
+    String? firstName = await Session().getSession();
+    String? lastName = await Session().getLastName();
+    profileImageUrl = await Session().getProfileImagePath();
     if (mounted) {
       setState(() {
-        _username = storedUsername ?? "Guest User";
+        _username = "$firstName $lastName" ?? "Guest User";
       });
     }
   }
@@ -214,7 +218,23 @@ class _MainScreenState extends State<MainScreen> {
                 child: CircleAvatar(
                   radius: 20,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage: const AssetImage("assets/profile_1.jpeg"),
+                  backgroundImage: profileImageUrl != null
+                      ? CachedNetworkImageProvider(
+                          profileImageUrl!,
+                        )
+                      : const AssetImage('assets/profile_1.jpeg'),
+                  child: profileImageUrl == null
+                      ? const Center(
+                          child: SizedBox(
+                            width: 15,
+                            height: 15,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
               ),
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:spherelink/core/session.dart';
 import 'package:spherelink/core/GoogleAuthService.dart';
 import 'package:spherelink/utils/appColors.dart';
+import '../core/AppConfig.dart';
 import '../utils/CustomPageRoute.dart';
 import '../widget/customSnackbar.dart';
 import 'MainScreen.dart';
@@ -27,12 +28,28 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     final response = await GoogleAuthService().signInWithGoogle();
-    final user = response?['user']; // Extract only the user map
+    final user = response?['user'];
     final token = response?['token'];
     await Session().saveUserToken(token);
 
     if (user != null) {
-      await Session().saveSession("${user['firstName']} ${user['lastName']}");
+      String baseUrl = AppConfig.apiBaseUrl;
+      baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
+      await Session().saveSession("${user['firstName']}");
+      await Session().saveLastName("${user['lastName']}");
+      await Session().saveEmail("${user['email']}");
+      await Session().savePhone(
+          user['phoneNumber'] != null ? "${user['phoneNumber']}" : "");
+
+      String? profileImagePath = user['profileImagePath'];
+
+      if (profileImagePath != null && !profileImagePath.startsWith('http')) {
+        await Session().saveProfileImagePath("$baseUrl/$profileImagePath");
+      } else if (profileImagePath != null) {
+        await Session().saveProfileImagePath(profileImagePath);
+      } else {
+        await Session().saveProfileImagePath(null);
+      }
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showCustomSnackBar(context, AppColors.textColorPrimary,
@@ -149,8 +166,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (response == 'Login successful') {
                               final response = await ApiService()
                                   .getUser(_emailController.text);
-                              Session().saveSession(
-                                  "${response?['firstName']} ${response?['lastName']}");
+
+                              await Session()
+                                  .saveSession("${response?['firstName']}");
+                              await Session()
+                                  .saveLastName("${response?['lastName']}");
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 showCustomSnackBar(
                                     context,
