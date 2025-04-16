@@ -506,11 +506,14 @@ class _HomeScreenState extends State<HomeScreen>
               child: IconButton(
                 icon: const Icon(Icons.add, color: Colors.white),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const PanoramicWithMarkers()),
-                  );
+                  _tabController.index == 0
+                      ? Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const PanoramicWithMarkers()),
+                        )
+                      : _tabController.index = 0;
                 },
               ),
             )
