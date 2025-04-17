@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mappls_gl/mappls_gl.dart';
 import 'package:spherelink/core/apiService.dart';
 import 'package:spherelink/data/ViewData.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
 import '../utils/appColors.dart';
 import 'MapSelectionScreen.dart';
+import 'package:image/image.dart' as img;
 
 class PublishViewScreen extends StatefulWidget {
   final ViewData view;
@@ -19,30 +18,60 @@ class PublishViewScreen extends StatefulWidget {
 
 class _PublishViewScreenState extends State<PublishViewScreen> {
   final _formKey = GlobalKey<FormState>();
-  late double viewLatitude;
-  late double viewLongitude;
+  late double? viewLatitude;
+  late double? viewLongitude;
   File? _thumbnail;
+  String? _thumbnailUrl;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-
-  bool _isPublishing = false;
+  bool _isProcessing = false;
+  bool get _isEditMode => widget.view.viewId != null;
 
   @override
   void initState() {
     super.initState();
-    _thumbnail = widget.view.thumbnailImage;
-    _titleController.text = widget.view.viewName;
+    _thumbnailUrl = widget.view.thumbnailImageUrl;
+    _titleController.text = widget.view.viewName ?? '';
+    _descriptionController.text = widget.view.description ?? '';
+    viewLatitude = widget.view.location?.latitude;
+    viewLongitude = widget.view.location?.longitude;
+    _locationController.text = viewLatitude != null && viewLongitude != null
+        ? "Lat: ${viewLatitude!.toStringAsFixed(4)}°   Lng: ${viewLongitude!.toStringAsFixed(4)}°"
+        : '';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _locationController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<File?> _resizeImage(File image) async {
+    final bytes = await image.readAsBytes();
+    final imageData = img.decodeImage(bytes)!;
+    final resized = img.copyResize(imageData, width: 400);
+    final resizedFile = File(image.path)
+      ..writeAsBytesSync(img.encodeJpg(resized, quality: 85));
+    return resizedFile;
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-
-    if (pickedFile != null) {
-      setState(() {
-        _thumbnail = File(pickedFile.path);
-      });
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source);
+      if (pickedFile != null) {
+        File? image = File(pickedFile.path);
+        image = await _resizeImage(image);
+        setState(() {
+          _thumbnail = image;
+        });
+      }
+    } catch (e) {
+      showCustomSnackBar(
+          context, Colors.red, "Failed to pick image", Colors.white, "", () {});
     }
   }
 
@@ -58,35 +87,77 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
       setState(() {
         viewLatitude = selectedLocation['latitude']!;
         viewLongitude = selectedLocation['longitude']!;
-
         _locationController.text =
-            "Lat: ${viewLatitude.toStringAsFixed(4)}°   Lng: ${viewLongitude.toStringAsFixed(4)}°";
+            "Lat: ${viewLatitude!.toStringAsFixed(4)}°   Lng: ${viewLongitude!.toStringAsFixed(4)}°";
       });
     }
   }
 
-  Future<void> _publishView() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isPublishing = true);
+  Future<void> _processView() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      widget.view.thumbnailImage = _thumbnail!;
-      widget.view.viewName = _titleController.text;
-      widget.view.description = _descriptionController.text;
-      widget.view.location = LatLng(viewLatitude, viewLongitude);
-      widget.view.dateTime = DateTime.now();
-      bool response = await ApiService().syncDataToServer(widget.view);
+    setState(() => _isProcessing = true);
+    try {
+      List<double>? location = viewLatitude != null && viewLongitude != null
+          ? [viewLatitude!, viewLongitude!]
+          : null;
+      bool success;
 
-      if (response) {
-        setState(() => _isPublishing = false);
-        showCustomSnackBar(context, Colors.green,
-            "View Published Successfully!", Colors.white, "", () => {});
+      if (_isEditMode) {
+        success = await ApiService().updateView(
+          viewId: widget.view.viewId!,
+          viewName: _titleController.text,
+          description: _descriptionController.text,
+          location: location,
+          thumbnailImage: _thumbnail,
+        );
+      } else {
+        if (_thumbnail == null) {
+          showCustomSnackBar(context, Colors.red, "Please select a thumbnail",
+              Colors.white, "", () {});
+          setState(() => _isProcessing = false);
+          return;
+        }
+        success = await ApiService().publishView(widget.view);
+      }
+
+      if (success) {
+        showCustomSnackBar(
+            context,
+            Colors.green,
+            _isEditMode
+                ? "View updated successfully"
+                : "View published successfully",
+            Colors.white,
+            "",
+            () {});
         Navigator.pop(context, true);
       } else {
-        setState(() => _isPublishing = false);
-        showCustomSnackBar(context, Colors.red,
-            "Upload failed! Please try again.", Colors.white, "", () => {});
+        showCustomSnackBar(
+            context,
+            Colors.red,
+            _isEditMode ? "Failed to update view" : "Failed to publish view",
+            Colors.white,
+            "",
+            () {});
       }
+    } catch (e) {
+      print("Failed to process view: $e");
+      showCustomSnackBar(context, Colors.red, "Something went wrong!",
+          Colors.white, "", () {});
+    } finally {
+      setState(() => _isProcessing = false);
     }
+  }
+
+  void _shareView() {
+    if (widget.view.viewId == null) {
+      showCustomSnackBar(context, Colors.red, "Cannot share: Invalid view ID",
+          Colors.white, "", () {});
+      return;
+    }
+    final shareUrl = "http://192.168.126.30:8080/views/${widget.view.viewId}";
+    // Share.share('Check out my view: $shareUrl', subject: 'Share View');
   }
 
   void _showImagePickerDialog() {
@@ -119,6 +190,43 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
     );
   }
 
+  void _showConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          actionsPadding: const EdgeInsets.only(right: 16, bottom: 16),
+          backgroundColor: AppColors.appsecondaryColor,
+          title: const Text("Confirm", style: TextStyle(color: Colors.white)),
+          content: Text(
+            _isEditMode
+                ? "Are you sure you want to go back without saving changes?"
+                : "Are you sure you want to go back without publishing this view?",
+            style: const TextStyle(color: Colors.white),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("No",
+                  style: TextStyle(
+                      color: Colors.lightBlueAccent,
+                      fontWeight: FontWeight.bold)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text("Yes",
+                  style: TextStyle(
+                      color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,13 +235,24 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
         titleSpacing: 0,
         toolbarHeight: 60,
         backgroundColor: AppColors.appprimaryColor,
-        title:
-            const Text("Publish View", style: TextStyle(color: Colors.white)),
+        title: Text(
+          _isEditMode ? "Edit View" : "Publish View",
+          style: const TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => _showConfirmationDialog(context),
         ),
+        actions: _isEditMode
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.share, color: Colors.white),
+                  onPressed: _shareView,
+                  tooltip: 'Share View',
+                ),
+              ]
+            : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -155,29 +274,44 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
                     borderRadius: BorderRadius.circular(12),
                     child: Stack(
                       children: [
-                        Image.file(
-                          _thumbnail ?? File('assets/default_thumbnail.jpg'),
-                          width: double.infinity,
-                          height: 180,
-                          fit: BoxFit.cover,
-                        ),
+                        _thumbnail != null
+                            ? Image.file(
+                                _thumbnail!,
+                                width: double.infinity,
+                                height: 180,
+                                fit: BoxFit.cover,
+                              )
+                            : widget.view.thumbnailImageUrl != null
+                                ? Image.network(
+                                    widget.view.thumbnailImageUrl!,
+                                    width: double.infinity,
+                                    height: 180,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Image.asset(
+                                                'assets/image_load_failed.png'),
+                                  )
+                                : Image.asset(
+                                    'assets/default_thumbnail.jpg',
+                                    width: double.infinity,
+                                    height: 180,
+                                    fit: BoxFit.cover,
+                                  ),
                         Container(
                           color: Colors.black.withOpacity(0.3),
                         ),
-                        Center(
-                          // Center the Column
+                        const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.camera_alt,
+                              Icon(Icons.camera_alt,
                                   size: 40, color: Colors.white),
-                              const SizedBox(height: 10),
+                              SizedBox(height: 10),
                               Text(
                                 "Tap to change the thumbnail",
-                                style: GoogleFonts.lato(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                ),
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.white),
                               ),
                             ],
                           ),
@@ -225,7 +359,6 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
                 decoration: const InputDecoration(
                   alignLabelWithHint: true,
                   labelText: "Description",
-                  labelStyle: TextStyle(),
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) =>
@@ -235,25 +368,31 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _isPublishing ? null : _publishView,
+                  onPressed: _isProcessing ? null : _processView,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.textColorPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                   ),
-                  icon: _isPublishing
+                  icon: _isProcessing
                       ? const SizedBox(
                           width: 15,
                           height: 15,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,
-                          ))
-                      : const Icon(Icons.file_upload_outlined,
-                          size: 24, color: Colors.white),
+                          ),
+                        )
+                      : Icon(
+                          _isEditMode ? Icons.save : Icons.file_upload_outlined,
+                          size: 24,
+                          color: Colors.white,
+                        ),
                   label: Text(
-                    _isPublishing ? "Publishing..." : "Publish View",
+                    _isProcessing
+                        ? (_isEditMode ? "Saving..." : "Publishing...")
+                        : (_isEditMode ? "Save Changes" : "Publish View"),
                     style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
@@ -262,49 +401,6 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  void _showConfirmationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          actionsPadding: const EdgeInsets.only(right: 16, bottom: 16),
-          backgroundColor: AppColors.appsecondaryColor,
-          title: const Text(
-            "Confirm",
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            "Are you sure you want to go back without publishing this view?",
-            style: TextStyle(color: Colors.white),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text(
-                "No",
-                style: TextStyle(
-                    color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                "Yes",
-                style: TextStyle(
-                    color: Colors.redAccent, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }

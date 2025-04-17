@@ -1212,7 +1212,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       builder: (context) {
         return Container(
-          height: _tabController.index == 1 ? 170 : 270,
+          height: _tabController.index == 1 ? 210 : 270,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(
@@ -1278,6 +1278,22 @@ class _HomeScreenState extends State<HomeScreen>
                         }
                       },
                       child: const Text("Publish",
+                          style: TextStyle(color: Colors.black)),
+                    ),
+                  ),
+                if (_tabController.index == 1)
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    PublishViewScreen(view: view)));
+                      },
+                      child: const Text("Edit",
                           style: TextStyle(color: Colors.black)),
                     ),
                   ),
