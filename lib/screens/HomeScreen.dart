@@ -48,6 +48,9 @@ class _HomeScreenState extends State<HomeScreen>
   List<ViewData> filteredPublishedViews = [];
   final GlobalKey<RefreshIndicatorState> _publishedRefreshKey =
       GlobalKey<RefreshIndicatorState>();
+  String heroMsg = "No views found! Tap to create one\nor Refresh the page.";
+  String publishedHeroMsg =
+      "No views found! Try publishing\nor Refresh the page.";
 
   @override
   void initState() {
@@ -74,13 +77,16 @@ class _HomeScreenState extends State<HomeScreen>
         publishedViews = views;
         filteredPublishedViews = List.from(views);
         isLoadingPublished = false;
+        publishedHeroMsg = publishedViews.isEmpty
+            ? "No views found! Try publishing\nor Refresh the page."
+            : "No matching views found.";
       });
       print("Loaded ${views.length} published views");
     } catch (e) {
       setState(() => isLoadingPublished = false);
       print("Error loading published views: $e");
-      showCustomSnackBar(context, Colors.red,
-          "Failed to load published views: $e", Colors.white, "", null);
+      showCustomSnackBar(context, Colors.red, "Failed to load published views",
+          Colors.white, "", null);
     }
   }
 
@@ -142,6 +148,9 @@ class _HomeScreenState extends State<HomeScreen>
       savedViews = viewList;
       filteredViews = List.from(viewList);
       isLoading = false;
+      heroMsg = savedViews.isEmpty
+          ? "No views found! Tap to create one\nor Refresh the page."
+          : "No matching views found.";
     });
   }
 
@@ -415,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         _buildShimmerGridTile(),
                                   )
                             : filteredPublishedViews.isEmpty
-                                ? _buildEmptyState()
+                                ? _buildPublishedEmptyState()
                                 : isListView
                                     ? _buildPublishedListView()
                                     : _buildPublishedGridView(),
@@ -525,21 +534,19 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildEmptyState() {
     final currentTab = _tabController.index;
     return RefreshIndicator(
-      onRefresh: currentTab == 0 ? _loadViews : _loadPublishedViews,
+      onRefresh: _loadViews,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.6,
           child: GestureDetector(
             onTap: () {
-              if (currentTab == 0) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PanoramicWithMarkers(),
-                  ),
-                );
-              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PanoramicWithMarkers(),
+                ),
+              );
             },
             child: Center(
               child: FittedBox(
@@ -555,9 +562,46 @@ class _HomeScreenState extends State<HomeScreen>
                     const SizedBox(height: 16),
                     Text(
                       textAlign: TextAlign.center,
-                      currentTab == 0 && savedViews.isEmpty
-                          ? "No views found! Tap to create one\nor Refresh the page."
-                          : "No matching views found.",
+                      heroMsg,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPublishedEmptyState() {
+    final currentTab = _tabController.index;
+    return RefreshIndicator(
+      onRefresh: _loadPublishedViews,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: GestureDetector(
+            onTap: () {
+              _tabController.index = 0;
+            },
+            child: Center(
+              child: FittedBox(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      "assets/ic_panorama.png",
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      textAlign: TextAlign.center,
+                      publishedHeroMsg,
                       style: const TextStyle(fontSize: 16),
                     ),
                   ],
