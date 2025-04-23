@@ -4,14 +4,14 @@ import 'package:mappls_gl/mappls_gl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Session {
-  Future<void> saveSession(String username) async {
+  Future<void> saveFirstName(String firstName) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', username);
+    await prefs.setString('firstName', firstName);
   }
 
-  Future<String?> getSession() async {
+  Future<String?> getFirstName() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('username');
+    return prefs.getString('firstName');
   }
 
   Future<void> saveLastName(String lastName) async {
@@ -74,8 +74,8 @@ class Session {
   }
 
   Future<bool> isUserLoggedIn() async {
-    final username = await getSession();
-    return username != null;
+    final firstName = await getFirstName();
+    return firstName != null;
   }
 
   Future<void> saveUserToken(token) async {
@@ -91,6 +91,6 @@ class Session {
   // Clear session data
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('username');
+    await prefs.remove('firstName');
   }
 }

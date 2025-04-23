@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (user != null) {
       String baseUrl = AppConfig.apiBaseUrl;
       baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
-      await Session().saveSession("${user['firstName']}");
+      await Session().saveFirstName("${user['firstName']}");
       await Session().saveLastName("${user['lastName']}");
       await Session().saveEmail("${user['email']}");
       await Session().savePhone(
@@ -168,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   .getUser(_emailController.text);
 
                               await Session()
-                                  .saveSession("${response?['firstName']}");
+                                  .saveFirstName("${response?['firstName']}");
                               await Session()
                                   .saveLastName("${response?['lastName']}");
                               WidgetsBinding.instance.addPostFrameCallback((_) {
