@@ -46,7 +46,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _fetchUsername() async {
-    String? firstName = await Session().getSession();
+    String? firstName = await Session().getFirstName();
     String? lastName = await Session().getLastName();
     profileImageUrl = await Session().getProfileImagePath();
     if (mounted) {
@@ -179,6 +179,7 @@ class _MainScreenState extends State<MainScreen> {
 
       if (placemarks.isNotEmpty) {
         Placemark placemark = placemarks[0];
+        print([placemark]);
         setState(() {
           _currentLocation =
               "${placemark.locality}, ${placemark.administrativeArea}, ${placemark.country}";
