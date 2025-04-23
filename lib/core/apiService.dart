@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart'; // Add this for MediaType
 import 'package:spherelink/core/session.dart';
+import '../data/Rating.dart';
 import '../data/ViewData.dart';
 import 'AppConfig.dart';
 
@@ -141,7 +143,7 @@ class ApiService {
     }
   }
 
-  Future<bool> syncDataToServer(ViewData view) async {
+  Future<bool> publishView(ViewData view) async {
     try {
       // Prepare metadata
       String? token = await Session().getUserToken();
@@ -152,7 +154,12 @@ class ApiService {
         "dateTime": view.dateTime?.toIso8601String() ??
             DateTime.now().toIso8601String(),
         "description": view.description ?? "",
-        "location": view.location ?? 0.0
+        "longitude": view.longitude ?? 0.0,
+        "latitude": view.latitude ?? 0.0,
+        "cityName": view.cityName ?? "",
+        "creatorName": view.creatorName ?? "",
+        "creatorProfileImagePath": view.creatorProfileImagePath ?? "",
+        "public": view.isPublic,
       };
 
       FormData formData = FormData();
@@ -413,6 +420,161 @@ class ApiService {
         print('Dio error status: ${e.response?.statusCode}');
       }
       return false;
+    }
+  }
+
+  Future<bool> updateView({
+    required String viewId,
+    String? viewName,
+    String? description,
+    File? thumbnailImage,
+    double? latitude,
+    double? longitude,
+  }) async {
+    try {
+      String? token = await Session().getUserToken();
+      if (token == null) {
+        print("No token available");
+        return false;
+      }
+
+      FormData formData = FormData();
+      if (viewName != null) formData.fields.add(MapEntry('viewName', viewName));
+      if (description != null)
+        formData.fields.add(MapEntry('description', description));
+      if (latitude != null) {
+        formData.fields.add(MapEntry('latitude', jsonEncode(latitude)));
+        print(latitude);
+      }
+      if (longitude != null) {
+        formData.fields.add(MapEntry('longitude', jsonEncode(longitude)));
+      }
+      if (thumbnailImage != null) {
+        formData.files.add(MapEntry(
+          'thumbnailImage',
+          await MultipartFile.fromFile(
+            thumbnailImage.path,
+            filename: thumbnailImage.path.split('/').last,
+            contentType: MediaType('image', 'jpeg'),
+          ),
+        ));
+      }
+
+      final response = await _dio.put(
+        "$baseUrl/views/$viewId",
+        data: formData,
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      print('Update view response status: ${response.statusCode}');
+      print('Update view response data: ${response.data}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Error updating view: $e");
+      if (e is DioException) {
+        print('Dio error response: ${e.response?.data}');
+        print('Dio error status: ${e.response?.statusCode}');
+      }
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchPublicViews({
+    int page = 1,
+    int pageSize = 10,
+    String? query,
+    String filter = 'all',
+    double? latitude,
+    double? longitude,
+  }) async {
+    print("called");
+    try {
+      String? token = await Session().getUserToken();
+      final queryParameters = {
+        'page': page,
+        'size': pageSize,
+        if (query != null && query.isNotEmpty) 'query': query,
+        'filter': filter,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+      };
+      final response = await _dio.get(
+        "$baseUrl/views/public",
+        queryParameters: queryParameters,
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      return {
+        'views': (response.data['data'] as List<dynamic>)
+            .map((e) => ViewData.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        'totalPages': response.data['totalPages'] as int,
+        'totalElements': response.data['totalElements'] as int,
+      };
+    } catch (e) {
+      throw Exception("Failed to fetch public views: $e");
+    }
+  }
+
+  Future<bool> addRating({
+    required String viewId,
+    required int stars,
+    String? comment,
+  }) async {
+    try {
+      String? token = await Session().getUserToken();
+      final response = await _dio.post(
+        "$baseUrl/views/$viewId/ratings",
+        data: {
+          'stars': stars,
+          if (comment != null) 'comment': comment,
+        },
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<List<Rating>> fetchRatings({
+    required String viewId,
+    int page = 1,
+    int pageSize = 10,
+  }) async {
+    try {
+      String? token = await Session().getUserToken();
+      final response = await _dio.get(
+        "$baseUrl/views/$viewId/ratings",
+        queryParameters: {'page': page, 'size': pageSize},
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      if (response.statusCode == 200) {
+        List<dynamic> data = response.data['data'];
+        return data.map((json) => Rating.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception("Failed to fetch ratings");
     }
   }
 }
