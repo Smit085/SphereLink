@@ -1,22 +1,28 @@
-// ViewData.dart
 import 'dart:io';
 import 'package:mappls_gl/mappls_gl.dart';
 import 'PanoramaImage.dart';
 
 class ViewData {
   final String? viewId;
-  List<PanoramaImage> panoramaImages;
   String viewName;
+  List<PanoramaImage> panoramaImages;
   File? thumbnailImage;
   String? thumbnailImageUrl;
   DateTime dateTime;
-  LatLng? location;
+  double? latitude;
+  double? longitude;
   String? description;
   bool isPublished;
+  String? creatorName;
+  String? creatorProfileImagePath;
+  String? cityName;
+  double? averageRating;
+  bool isPublic;
 
   ViewData({
     this.viewId,
-    this.location,
+    this.latitude,
+    this.longitude,
     this.description,
     this.thumbnailImageUrl,
     this.thumbnailImage,
@@ -24,6 +30,11 @@ class ViewData {
     required this.panoramaImages,
     required this.viewName,
     required this.dateTime,
+    this.creatorName,
+    this.creatorProfileImagePath,
+    this.cityName,
+    this.averageRating,
+    this.isPublic = true,
   });
 
   Map<String, dynamic> toJson() {
@@ -33,9 +44,8 @@ class ViewData {
       "thumbnailImage": thumbnailImage?.path,
       "thumbnailImageUrl": thumbnailImageUrl,
       "dateTime": dateTime.toIso8601String(),
-      "location": location != null
-          ? {"latitude": location!.latitude, "longitude": location!.longitude}
-          : null,
+      "latitude": latitude,
+      "longitude": longitude,
       "description": description?.toString(),
       'isPublished': isPublished,
     };
@@ -54,14 +64,15 @@ class ViewData {
       thumbnailImageUrl: json["thumbnailImagePath"] as String?, // From server
       dateTime: DateTime.parse(
           json["dateTime"] as String? ?? DateTime.now().toIso8601String()),
-      location: json["location"] != null
-          ? LatLng(
-              (json["location"] as List<dynamic>)[0] as double,
-              (json["location"] as List<dynamic>)[1] as double,
-            )
-          : null,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
       description: json["description"] as String?,
       isPublished: json['isPublished'] as bool? ?? false,
+      creatorName: json['creatorName'] as String?,
+      creatorProfileImagePath: json['creatorProfileImagePath'] as String?,
+      cityName: json['cityName'] as String?,
+      averageRating: (json['averageRating'] as num?)?.toDouble(),
+      isPublic: json['isPublic'] as bool? ?? true,
     );
   }
 }

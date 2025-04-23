@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:spherelink/core/apiService.dart';
+import 'package:spherelink/core/session.dart';
 import 'package:spherelink/data/ViewData.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
 import '../utils/appColors.dart';
@@ -31,11 +33,12 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
   @override
   void initState() {
     super.initState();
+    _thumbnail = widget.view.thumbnailImage;
     _thumbnailUrl = widget.view.thumbnailImageUrl;
     _titleController.text = widget.view.viewName ?? '';
     _descriptionController.text = widget.view.description ?? '';
-    viewLatitude = widget.view.location?.latitude;
-    viewLongitude = widget.view.location?.longitude;
+    viewLatitude = widget.view.latitude;
+    viewLongitude = widget.view.longitude;
     _locationController.text = viewLatitude != null && viewLongitude != null
         ? "Lat: ${viewLatitude!.toStringAsFixed(4)}°   Lng: ${viewLongitude!.toStringAsFixed(4)}°"
         : '';
@@ -93,22 +96,46 @@ class _PublishViewScreenState extends State<PublishViewScreen> {
     }
   }
 
+  Future<String?> LatLongToAddress(double latitude, double longitude) async {
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      latitude,
+      longitude,
+    );
+    if (placemarks.isNotEmpty) {
+      Placemark placemark = placemarks[0];
+      return "${placemark.locality}, ${placemark.administrativeArea}";
+    } else {
+      return null;
+    }
+  }
+
   Future<void> _processView() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isProcessing = true);
     try {
-      List<double>? location = viewLatitude != null && viewLongitude != null
-          ? [viewLatitude!, viewLongitude!]
-          : null;
       bool success;
+      widget.view.thumbnailImage = _thumbnail;
+      widget.view.viewName = _titleController.text;
+      widget.view.description = _descriptionController.text;
+      widget.view.latitude = viewLatitude;
+      widget.view.longitude = viewLongitude;
+      widget.view.dateTime = DateTime.now();
+      String? firstName = await Session().getFirstName();
+      String? lastName = await Session().getLastName();
+      widget.view.creatorName = "$firstName $lastName";
+      widget.view.cityName =
+          await LatLongToAddress(viewLatitude!, viewLongitude!);
+      widget.view.creatorProfileImagePath =
+          await Session().getProfileImagePath();
 
       if (_isEditMode) {
         success = await ApiService().updateView(
           viewId: widget.view.viewId!,
           viewName: _titleController.text,
           description: _descriptionController.text,
-          location: location,
+          latitude: viewLatitude,
+          longitude: viewLongitude,
           thumbnailImage: _thumbnail,
         );
       } else {
