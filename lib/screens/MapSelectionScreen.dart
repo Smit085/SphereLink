@@ -75,14 +75,8 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        showCustomSnackBar(
-          context,
-          AppColors.textColorPrimary,
-          "Location permission denied.",
-          Colors.white,
-          "",
-          () {},
-        );
+        showCustomSnackBar(context, AppColors.textColorPrimary,
+            "Location permission denied.", Colors.white, "Settings", () {});
         return false;
       }
     }
