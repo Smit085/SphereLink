@@ -63,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (success) {
         await Session().savePhone(_phoneController.text);
-        await Session().saveSession(_firstNameController.text);
+        await Session().saveFirstName(_firstNameController.text);
         await Session().saveLastName(_lastNameController.text);
 
         showCustomSnackBar(context, Colors.green, "Profile saved successfully",
@@ -294,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> initializeDefaults() async {
-    _firstNameController.text = (await Session().getSession())!;
+    _firstNameController.text = (await Session().getFirstName())!;
     _lastNameController.text = (await Session().getLastName())!;
     _phoneController.text = (await Session().getPhone())!;
     _emailController.text = (await Session().getEmail())!;
