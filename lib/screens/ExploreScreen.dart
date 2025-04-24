@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:spherelink/screens/ViewDescriptionScreen.dart';
 import '../core/apiService.dart';
 import '../data/ViewData.dart';
 import '../utils/appColors.dart';
@@ -59,10 +60,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      developer.log('Search text changed: ${_searchController.text}',
-          name: 'ExploreScreen');
-    });
+    _searchController.addListener(() {});
     _scrollController.addListener(_onScroll);
     _fetchViews(_currentPage);
     _getCurrentLocation();
@@ -121,7 +119,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _fetchViews(_currentPage);
       }
     } catch (e) {
-      developer.log('Error getting location: $e', name: 'ExploreScreen');
       showCustomSnackBar(
         context,
         Colors.red,
@@ -141,15 +138,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  Future<void> _fetchViews(int pageKey) async {
+  Future<void> _fetchViews(int pageKey, {bool isRefresh = false}) async {
+    if (_isLoading || (pageKey > _totalPages && !isRefresh)) return;
+
     try {
       setState(() {
         _isLoading = true;
         _hasError = false;
-        _views.clear();
+        if (isRefresh || pageKey == 1) {
+          _views.clear();
+        }
       });
+
       final result = await _apiService.fetchPublicViews(
-        page: _currentPage,
+        page: pageKey,
         pageSize: _pageSize,
         query: _query,
         filter: _filter,
@@ -159,12 +161,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final newViews =
           (result['views'] as List<dynamic>?)?.cast<ViewData>() ?? [];
 
+      double? previousOffset =
+          _scrollController.hasClients ? _scrollController.offset : null;
+
       setState(() {
         _views.addAll(newViews);
         _totalPages = (result['totalPages'] as num?)?.toInt() ?? 1;
         _totalElements = (result['totalElements'] as num?)?.toInt() ?? 0;
         _isLoading = false;
       });
+
+      // Restore scroll position after rebuild
+      if (previousOffset != null && _scrollController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(previousOffset!);
+          }
+        });
+      }
     } catch (e, stackTrace) {
       setState(() {
         _isLoading = false;
@@ -183,6 +197,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
             message = "Network error, please check your connection";
           }
         }
+        showCustomSnackBar(
+          context,
+          Colors.red,
+          message,
+          Colors.white,
+          "Retry",
+          () => _fetchViews(pageKey),
+        );
       }
     }
   }
@@ -190,9 +212,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _onRefresh() async {
     setState(() {
       _currentPage = 1;
-      _views.clear();
     });
-    await _fetchViews(_currentPage);
+    await _fetchViews(_currentPage, isRefresh: true);
   }
 
   void _onSearch() {
@@ -202,7 +223,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _query = _searchController.text.isEmpty ? null : _searchController.text;
         _currentPage = 1;
       });
-      _fetchViews(_currentPage);
+      _fetchViews(_currentPage, isRefresh: true);
     });
   }
 
@@ -211,12 +232,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _filter = filter;
       _currentPage = 1;
     });
-    _fetchViews(_currentPage);
+    _fetchViews(_currentPage, isRefresh: true);
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels ==
-        _scrollController.position.maxScrollExtent) {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent &&
+        !_isLoading &&
+        _currentPage < _totalPages) {
       _currentPage++;
       _fetchViews(_currentPage);
     }
@@ -263,9 +286,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    developer.log(
-        'Building: views=${_views.length}, isLoading=$_isLoading, hasError=$_hasError',
-        name: 'ExploreScreen');
     return Scaffold(
       backgroundColor: AppColors.appsecondaryColor,
       body: SafeArea(
@@ -392,13 +412,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    if (_isLoading) {
-                      return Container(
+                    if (_isLoading && _views.isEmpty) {
+                      return SizedBox(
                         height: MediaQuery.of(context).size.height -
                             kToolbarHeight -
                             MediaQuery.of(context).padding.top -
-                            100.0, // Subtract SliverAppBar height and safe area
-                        child: Center(
+                            100.0,
+                        child: const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -426,14 +446,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         height: MediaQuery.of(context).size.height -
                             kToolbarHeight -
                             MediaQuery.of(context).padding.top -
-                            100.0, // Subtract SliverAppBar height and safe area
+                            100.0,
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.error, color: Colors.white, size: 40),
-                              SizedBox(height: 8),
-                              Text(
+                              const Icon(Icons.error,
+                                  color: Colors.white, size: 40),
+                              const SizedBox(height: 8),
+                              const Text(
                                 'Failed to load views',
                                 style: TextStyle(
                                     color: Colors.white, fontSize: 16),
@@ -441,7 +462,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               SizedBox(height: 8),
                               ElevatedButton(
                                 onPressed: () => _fetchViews(_currentPage),
-                                child: Text('Retry'),
+                                child: const Text('Retry'),
                               ),
                             ],
                           ),
@@ -454,10 +475,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             kToolbarHeight -
                             MediaQuery.of(context).padding.top -
                             100.0,
-                        child: Center(
+                        child: const Center(
                           child: Text(
                             'No views available',
                             style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      );
+                    }
+                    if (index == _views.length && _isLoading) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
+                        child: Center(
+                          child: SizedBox(
+                            width: 25,
+                            height: 25,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       );
@@ -466,7 +502,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         !_isLoading &&
                         _currentPage >= _totalPages &&
                         _views.length >= _totalElements) {
-                      return Padding(
+                      return const Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Center(
                           child: Text(
@@ -476,85 +512,38 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                       );
                     }
-                    final view = _views[index];
-                    return InkWell(
-                      onTap: () {
-                        Navigator.pushNamed(context, '/viewDetails',
-                            arguments: view);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Stack(
-                              children: [
-                                Container(
-                                  color: Colors.black87,
-                                  width: double.infinity,
-                                  height: 200,
-                                  child: view.thumbnailImageUrl != null &&
-                                          view.thumbnailImageUrl!.isNotEmpty
-                                      ? CachedNetworkImage(
-                                          imageUrl: view.thumbnailImageUrl!,
-                                          cacheManager: customCacheManager,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) =>
-                                              Container(
-                                            color: Colors.grey[200],
-                                            child: const Center(
-                                              child: SizedBox(
-                                                width: 15,
-                                                height: 15,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          errorWidget: (context, url, error) {
-                                            developer.log(
-                                                'Thumbnail error: $error, URL: $url',
-                                                name: 'ExploreScreen');
-                                            return Container(
-                                              color: Colors.grey[300],
-                                              child: const Icon(Icons.error,
-                                                  size: 50,
-                                                  color: Colors.white),
-                                            );
-                                          },
-                                        )
-                                      : Container(
-                                          color: Colors.grey[300],
-                                          child: const Icon(Icons.image,
-                                              size: 50, color: Colors.grey),
-                                        ),
-                                ),
-                              ],
+                    if (index < _views.length) {
+                      final view = _views[index];
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ViewDescriptionScreen(view: view),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 8, right: 8, top: 8, bottom: 20),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Stack(
                                 children: [
-                                  ClipOval(
-                                    child: view.creatorProfileImagePath !=
-                                                null &&
-                                            view.creatorProfileImagePath!
-                                                .isNotEmpty
+                                  Container(
+                                    color: Colors.black87,
+                                    width: double.infinity,
+                                    height: 200,
+                                    child: view.thumbnailImageUrl != null &&
+                                            view.thumbnailImageUrl!.isNotEmpty
                                         ? CachedNetworkImage(
-                                            imageUrl:
-                                                view.creatorProfileImagePath!,
+                                            imageUrl: view.thumbnailImageUrl!,
                                             cacheManager: customCacheManager,
-                                            width: 35,
-                                            height: 35,
                                             fit: BoxFit.cover,
                                             placeholder: (context, url) =>
                                                 Container(
-                                              color: Colors.grey[300],
+                                              color: Colors.grey[200],
                                               child: const Center(
                                                 child: SizedBox(
                                                   width: 15,
@@ -568,77 +557,128 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                               ),
                                             ),
                                             errorWidget: (context, url, error) {
-                                              developer.log(
-                                                  'Profile image error: $error, URL: $url',
-                                                  name: 'ExploreScreen');
                                               return Container(
                                                 color: Colors.grey[300],
                                                 child: const Icon(Icons.error,
-                                                    size: 20,
+                                                    size: 50,
                                                     color: Colors.white),
                                               );
                                             },
                                           )
                                         : Container(
-                                            width: 40,
-                                            height: 40,
                                             color: Colors.grey[300],
-                                            child: const Icon(Icons.person,
-                                                size: 20),
+                                            child: const Icon(Icons.image,
+                                                size: 50, color: Colors.grey),
                                           ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          view.viewName ?? 'Untitled',
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Wrap(
-                                          children: [
-                                            Text(
-                                              view.creatorName ?? 'Unknown',
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.white54,
-                                              ),
-                                            ),
-                                            Text(
-                                              ' • ${formatViewCount(1000)} • ${view.dateTime != null ? formatDateTime(view.dateTime) : 'Unknown'}',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white54,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 8, right: 8, top: 8, bottom: 20),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipOval(
+                                      child: view.creatorProfileImagePath !=
+                                                  null &&
+                                              view.creatorProfileImagePath!
+                                                  .isNotEmpty
+                                          ? CachedNetworkImage(
+                                              imageUrl:
+                                                  view.creatorProfileImagePath!,
+                                              cacheManager: customCacheManager,
+                                              width: 35,
+                                              height: 35,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) =>
+                                                  Container(
+                                                color: Colors.grey[300],
+                                                child: const Center(
+                                                  child: SizedBox(
+                                                    width: 15,
+                                                    height: 15,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              errorWidget:
+                                                  (context, url, error) {
+                                                return Container(
+                                                  color: Colors.grey[300],
+                                                  child: const Icon(Icons.error,
+                                                      size: 20,
+                                                      color: Colors.white),
+                                                );
+                                              },
+                                            )
+                                          : Container(
+                                              width: 40,
+                                              height: 40,
+                                              color: Colors.grey[300],
+                                              child: const Icon(Icons.person,
+                                                  size: 20),
+                                            ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            view.viewName ?? 'Untitled',
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Wrap(
+                                            children: [
+                                              Text(
+                                                view.creatorName ?? 'Unknown',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                              Text(
+                                                ' • ${formatViewCount(1000)} • ${view.dateTime != null ? formatDateTime(view.dateTime) : 'Unknown'}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
+                    return const SizedBox.shrink();
                   },
-                  childCount: _isLoading || (_views.isEmpty && !_isLoading)
+                  childCount: _isLoading && _views.isEmpty
                       ? 1
-                      : _views.length +
-                          ((_currentPage >= _totalPages &&
-                                  _views.length >= _totalElements)
-                              ? 1
-                              : 0),
+                      : _views.isEmpty && !_isLoading
+                          ? 1
+                          : _views.length +
+                              (_isLoading || _currentPage >= _totalPages
+                                  ? 1
+                                  : 0),
                 ),
               ),
             ],
