@@ -116,7 +116,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _longitude = position.longitude;
       });
       if (_filter == 'nearby') {
-        _fetchViews(_currentPage);
+        _fetchViews(_currentPage, isRefresh: true);
       }
     } catch (e) {
       showCustomSnackBar(
@@ -133,7 +133,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         setState(() {
           _filter = 'all';
         });
-        _fetchViews(_currentPage);
+        _fetchViews(_currentPage, isRefresh: true);
       }
     }
   }
@@ -274,6 +274,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
     } catch (e) {
       return 'Unknown';
     }
+  }
+
+  Widget buildStarRating(double? rating) {
+    const double maxRating = 5.0;
+    final ratingValue = rating?.clamp(0.0, maxRating) ?? 0.0;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '${ratingValue.toStringAsFixed(1)}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 4),
+        const Icon(
+          Icons.star,
+          color: Colors.amber,
+          size: 14,
+        ),
+      ],
+    );
   }
 
   @override
@@ -571,6 +596,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                 size: 50, color: Colors.grey),
                                           ),
                                   ),
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.textColorPrimary,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child:
+                                          buildStarRating(view.averageRating),
+                                    ),
+                                  ),
                                 ],
                               ),
                               Padding(
@@ -640,7 +679,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
+                                          Text(
+                                            '${view.cityName}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white54,
+                                            ),
+                                          ),
                                           Wrap(
+                                            spacing: 8,
+                                            runSpacing: 4,
                                             children: [
                                               Text(
                                                 view.creatorName ?? 'Unknown',
@@ -650,7 +698,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                 ),
                                               ),
                                               Text(
-                                                ' • ${formatViewCount(1000)} • ${view.dateTime != null ? formatDateTime(view.dateTime) : 'Unknown'}',
+                                                '• ${formatViewCount(1000)}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                              Text(
+                                                '• ${view.dateTime != null ? formatDateTime(view.dateTime) : 'Unknown'}',
                                                 style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.white54,
