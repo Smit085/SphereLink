@@ -550,7 +550,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           );
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 14),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -614,7 +615,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               ),
                               Padding(
                                 padding: const EdgeInsets.only(
-                                    left: 8, right: 8, top: 8, bottom: 20),
+                                    left: 8, right: 8, top: 8),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
