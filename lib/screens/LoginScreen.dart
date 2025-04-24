@@ -43,13 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       String? profileImagePath = user['profileImagePath'];
 
-      if (profileImagePath != null && !profileImagePath.startsWith('http')) {
-        await Session().saveProfileImagePath("$baseUrl/$profileImagePath");
-      } else if (profileImagePath != null) {
-        await Session().saveProfileImagePath(profileImagePath);
-      } else {
-        await Session().saveProfileImagePath(null);
-      }
+      await Session().saveProfileImagePath(profileImagePath!);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showCustomSnackBar(context, AppColors.textColorPrimary,

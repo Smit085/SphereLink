@@ -9,6 +9,7 @@ import 'package:internet_connection_checker_plus/internet_connection_checker_plu
 import 'package:spherelink/screens/ExploreScreen.dart';
 import 'package:spherelink/screens/HomeScreen.dart';
 import 'package:spherelink/screens/ProfileScreen.dart';
+import '../core/AppConfig.dart';
 import '../core/session.dart';
 import '../utils/appColors.dart';
 import '../widget/BadgeNotificationIcon.dart';
@@ -49,6 +50,11 @@ class _MainScreenState extends State<MainScreen> {
     String? firstName = await Session().getFirstName();
     String? lastName = await Session().getLastName();
     profileImageUrl = await Session().getProfileImagePath();
+    String baseUrl = AppConfig.apiBaseUrl;
+    baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
+    if (!profileImageUrl!.startsWith('http')) {
+      profileImageUrl = "$baseUrl/$profileImageUrl";
+    }
     if (mounted) {
       setState(() {
         _username = "$firstName $lastName" ?? "Guest User";

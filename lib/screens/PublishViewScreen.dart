@@ -6,6 +6,7 @@ import 'package:spherelink/core/apiService.dart';
 import 'package:spherelink/core/session.dart';
 import 'package:spherelink/data/ViewData.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
+import '../core/AppConfig.dart';
 import '../utils/appColors.dart';
 import 'MapSelectionScreen.dart';
 import 'package:image/image.dart' as img;

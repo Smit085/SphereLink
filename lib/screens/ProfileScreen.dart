@@ -7,6 +7,7 @@ import 'package:spherelink/core/session.dart';
 import 'package:spherelink/screens/LoginScreen.dart';
 import 'package:spherelink/utils/appColors.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
+import '../core/AppConfig.dart';
 import '../core/apiService.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -299,7 +300,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _phoneController.text = (await Session().getPhone())!;
     _emailController.text = (await Session().getEmail())!;
     profileImageUrl = await Session().getProfileImagePath();
-    print(profileImageUrl);
+    String baseUrl = AppConfig.apiBaseUrl;
+    baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
+    if (!profileImageUrl!.startsWith('http')) {
+      profileImageUrl = "$baseUrl/$profileImageUrl";
+    }
     setState(() {});
   }
 
