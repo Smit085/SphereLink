@@ -383,7 +383,8 @@ class ApiService {
 
       print('Response status: ${response.statusCode}');
       print('Response data: ${response.data}');
-
+      String profile_path = response.data["user"]["profileImagePath"];
+      await Session().saveProfileImagePath(profile_path);
       return response.statusCode == 200;
     } catch (e) {
       print("Error updating profile: $e");
