@@ -529,53 +529,57 @@ class ApiService {
   Future<bool> addRating({
     required String viewId,
     required int stars,
-    String? comment,
+    required String comment,
   }) async {
-    try {
-      String? token = await Session().getUserToken();
-      final response = await _dio.post(
-        "$baseUrl/views/$viewId/ratings",
-        data: {
-          'stars': stars,
-          if (comment != null) 'comment': comment,
-        },
-        options: Options(
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
+    final uri = Uri.parse('${AppConfig.apiBaseUrl}/views/$viewId/ratings')
+        .replace(queryParameters: {
+      'stars': stars.toString(),
+      'comment': comment.isNotEmpty ? comment : null,
+    });
+
+    String? token = await Session().getUserToken();
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print('API Error: ${response.statusCode} - ${response.body}');
       return false;
     }
   }
 
-  Future<List<Rating>> fetchRatings({
+  Future<Map<String, dynamic>> fetchRatings({
     required String viewId,
-    int page = 1,
-    int pageSize = 10,
+    required int page,
+    required int pageSize,
   }) async {
-    try {
-      String? token = await Session().getUserToken();
-      final response = await _dio.get(
-        "$baseUrl/views/$viewId/ratings",
-        queryParameters: {'page': page, 'size': pageSize},
-        options: Options(
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-      if (response.statusCode == 200) {
-        List<dynamic> data = response.data['data'];
-        return data.map((json) => Rating.fromJson(json)).toList();
-      }
-      return [];
-    } catch (e) {
-      throw Exception("Failed to fetch ratings");
+    final uri = Uri.parse(
+        '${AppConfig.apiBaseUrl}/views/$viewId/ratings?page=$page&size=$pageSize');
+    String? token = await Session().getUserToken();
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+      return {
+        'ratings': (jsonResponse['data'] as List<dynamic>)
+            .map((json) => Rating.fromJson(json))
+            .toList(),
+        'totalElements': jsonResponse['totalElements'] as int? ?? 0,
+      };
+    } else {
+      throw Exception(
+          'Failed to load ratings: ${response.statusCode} - ${response.body}');
     }
   }
 }
