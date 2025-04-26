@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:spherelink/core/apiService.dart';
 import 'package:spherelink/data/Rating.dart';
 import 'package:spherelink/data/ViewData.dart';
+import 'package:spherelink/screens/ViewMapScreen.dart';
 import 'package:spherelink/screens/publishRatingScreen.dart';
 import 'package:spherelink/utils/appColors.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
@@ -140,7 +141,14 @@ class _ViewDescriptionScreenState extends State<ViewDescriptionScreen> {
         ),
         child: IconButton(
           icon: const Icon(Icons.map_rounded, color: Colors.white),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ViewMapScreen(view: widget.view),
+              ),
+            );
+          },
         ),
       ),
       body: CustomScrollView(
