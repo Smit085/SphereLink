@@ -43,6 +43,7 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
   BuildContext? _scaffoldContext;
   Timer? _locationUpdateTimer;
   bool _showNavigationPanel = false;
+  bool _showViewPanel = false; // Controls view panel visibility
 
   @override
   void initState() {
@@ -170,7 +171,7 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
           if (distanceMoved > 50) {
             debugPrint(
                 "User moved significantly ($distanceMoved m), updating route");
-            await _fetchAndDisplayRoute(_scaffoldContext!);
+            await _fetchAndDisplayRoute();
           }
         }
       }
@@ -385,7 +386,7 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
     }
   }
 
-  Future<void> _fetchAndDisplayRoute(BuildContext sheetContext) async {
+  Future<void> _fetchAndDisplayRoute() async {
     if (_mapController == null ||
         _userLocation == null ||
         _viewLocation == null) {
@@ -398,7 +399,6 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
         "",
         () {},
       );
-      Navigator.of(sheetContext).pop();
       return;
     }
 
@@ -419,8 +419,8 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
           _isNavigationActive = false;
           _routeCoordinates = [];
           _showNavigationPanel = false;
+          _showViewPanel = true; // Show view panel after Google Maps launch
         });
-        Navigator.of(sheetContext).pop();
         return;
       } catch (e) {
         debugPrint("Error launching Google Maps: $e");
@@ -432,13 +432,9 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
           "",
           () {},
         );
-        Navigator.of(sheetContext).pop();
         return;
       }
     }
-
-    // Close the bottom sheet immediately for Mappls navigation
-    Navigator.of(sheetContext).pop();
 
     const String apiKey = AppConfig.mapSDKKey;
     if (apiKey.isEmpty) {
@@ -649,13 +645,13 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
         return;
       }
 
-      // Show the navigation panel after route is successfully fetched
       if (_scaffoldContext != null && mounted) {
         setState(() {
           _routeDuration = duration?.toDouble();
           _routeDistance = distance?.toDouble();
           _routeCoordinates = coordinates;
           _showNavigationPanel = true;
+          _showViewPanel = false; // Hide view panel when navigation starts
         });
         debugPrint("Navigation panel displayed");
       } else {
@@ -794,124 +790,15 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
     return (bearing + 360) % 360;
   }
 
-  void _showViewBottomSheet() {
+  void _toggleViewPanel() {
     if (_scaffoldContext == null || !mounted) {
       debugPrint("Scaffold context is null or widget not mounted");
       return;
     }
-    showModalBottomSheet(
-      context: _scaffoldContext!,
-      backgroundColor: AppColors.appsecondaryColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (BuildContext sheetContext) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    overflow: TextOverflow.ellipsis,
-                    widget.view.viewName ?? 'Untitled',
-                    textAlign: TextAlign.justify,
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [
-                        const Shadow(
-                          color: Colors.black45,
-                          offset: Offset(1, 1),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.grey.withOpacity(0.3),
-                      child: IconButton(
-                          icon: const Icon(Icons.close,
-                              color: Colors.white, size: 16),
-                          onPressed: () => Navigator.of(sheetContext).pop()),
-                    ),
-                  )
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.view.cityName ?? 'Unknown City',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  _buildStarRating(widget.view.averageRating),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        setState(() {
-                          _useMapplsNavigation = false;
-                        });
-                        await _fetchAndDisplayRoute(sheetContext);
-                      },
-                      icon: const Icon(Icons.directions, color: Colors.white),
-                      label: const Text(
-                        "Google Maps",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.textColorPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        setState(() {
-                          _useMapplsNavigation = true;
-                        });
-                        await _fetchAndDisplayRoute(sheetContext);
-                      },
-                      icon: const Icon(Icons.directions, color: Colors.white),
-                      label: const Text(
-                        "Mappls",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.textColorPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
+    setState(() {
+      _showViewPanel = true;
+      _showNavigationPanel = false; // Ensure navigation panel is hidden
+    });
   }
 
   void _showDirectionsBottomSheet() {
@@ -921,6 +808,7 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
     }
     setState(() {
       _showNavigationPanel = true;
+      _showViewPanel = false; // Hide view panel when showing navigation
     });
   }
 
@@ -968,7 +856,7 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
                           debugPrint("Map controller created");
                           controller.onSymbolTapped.add((symbol) {
                             if (symbol == _viewSymbol) {
-                              _showViewBottomSheet();
+                              _toggleViewPanel();
                             }
                           });
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1217,6 +1105,134 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
                                       elevation: 2,
                                     ),
                                   ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (_showViewPanel)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.appsecondaryColor,
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(16)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                overflow: TextOverflow.ellipsis,
+                                widget.view.viewName ?? 'Untitled SPT',
+                                textAlign: TextAlign.justify,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  shadows: [
+                                    const Shadow(
+                                      color: Colors.black45,
+                                      offset: Offset(1, 1),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.grey.withOpacity(0.3),
+                                child: IconButton(
+                                  icon: const Icon(Icons.close,
+                                      color: Colors.white, size: 16),
+                                  onPressed: () {
+                                    setState(() {
+                                      _showViewPanel = false;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.view.cityName ?? 'Unknown City',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              _buildStarRating(widget.view.averageRating),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    setState(() {
+                                      _useMapplsNavigation = false;
+                                    });
+                                    await _fetchAndDisplayRoute();
+                                  },
+                                  icon: const Icon(Icons.directions,
+                                      color: Colors.white),
+                                  label: const Text(
+                                    "Google Maps",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.textColorPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    setState(() {
+                                      _useMapplsNavigation = true;
+                                    });
+                                    await _fetchAndDisplayRoute();
+                                  },
+                                  icon: const Icon(Icons.directions,
+                                      color: Colors.white),
+                                  label: const Text(
+                                    "Mappls",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.textColorPrimary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                         ],
