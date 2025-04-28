@@ -212,6 +212,7 @@ class _ViewDescriptionScreenState extends State<ViewDescriptionScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
+                          overflow: TextOverflow.ellipsis,
                           widget.view.viewName ?? 'Untitled',
                           textAlign: TextAlign.justify,
                           style: GoogleFonts.poppins(
@@ -228,6 +229,7 @@ class _ViewDescriptionScreenState extends State<ViewDescriptionScreen> {
                           ),
                         ),
                         Text(
+                          overflow: TextOverflow.ellipsis,
                           widget.view.cityName ?? 'Unknown City',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
@@ -274,6 +276,7 @@ class _ViewDescriptionScreenState extends State<ViewDescriptionScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
+                        overflow: TextOverflow.ellipsis,
                         widget.view.creatorName ?? 'Unknown',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
@@ -392,6 +395,7 @@ class _ViewDescriptionScreenState extends State<ViewDescriptionScreen> {
                                             'assets/default_profile.png'),
                                       ),
                                       title: Text(
+                                        overflow: TextOverflow.ellipsis,
                                         rating.userName ?? 'Anonymous',
                                         style: GoogleFonts.poppins(
                                           fontSize: 16,
