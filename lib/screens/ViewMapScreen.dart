@@ -374,15 +374,13 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
       }
     } catch (e) {
       debugPrint("Error in _addViewLocationSymbolWithThumbnail: $e");
-      if (_viewSymbol == null) {
-        _viewSymbol = await _mapController!.addSymbol(
-          SymbolOptions(
-            geometry: _viewLocation!,
-            iconImage: "assets/add_location.png",
-            iconSize: 1.0,
-          ),
-        );
-      }
+      _viewSymbol ??= await _mapController!.addSymbol(
+        SymbolOptions(
+          geometry: _viewLocation!,
+          iconImage: "assets/add_location.png",
+          iconSize: 1.0,
+        ),
+      );
     }
   }
 
