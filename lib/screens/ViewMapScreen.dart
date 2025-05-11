@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:android_intent_plus/android_intent.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
@@ -10,6 +11,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:spherelink/core/AppConfig.dart';
+import 'package:spherelink/screens/PanoramaPreview.dart';
+import 'package:spherelink/screens/PanoramaView.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/session.dart';
@@ -221,12 +224,6 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
       }
     });
     debugPrint("User location updated: $location");
-    if (!_isNavigationActive) {
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLng(location),
-        duration: const Duration(milliseconds: 500),
-      );
-    }
     _updateUserSymbol(location);
   }
 
@@ -1112,6 +1109,70 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
                 ),
               if (_showViewPanel)
                 Positioned(
+                  bottom: 200,
+                  left: 12,
+                  child: GestureDetector(
+                    onTap: () => {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PanoramaView(view: widget.view),
+                        ),
+                      )
+                    },
+                    child: Stack(
+                      children: [
+                        // Dimmed Container with the thumbnail image
+                        Container(
+                          height: 70,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 2.0,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: SizedBox(
+                              width: 120,
+                              height: 120,
+                              child: ColorFiltered(
+                                colorFilter: ColorFilter.mode(
+                                  Colors.black.withOpacity(0.2),
+                                  BlendMode.srcOver,
+                                ),
+                                child: CachedNetworkImage(
+                                  fit: BoxFit.cover,
+                                  imageUrl: widget.view.thumbnailImageUrl!,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Centered Image.asset
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              'assets/ic_360.png',
+                              fit: BoxFit.cover,
+                              width: 35,
+                              height: 35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              // Centered Image.asset
+              if (_showViewPanel)
+                Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
@@ -1137,23 +1198,19 @@ class _ViewMapScreenState extends State<ViewMapScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                overflow: TextOverflow.ellipsis,
-                                widget.view.viewName ?? 'Untitled SPT',
-                                textAlign: TextAlign.justify,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  shadows: [
-                                    const Shadow(
-                                      color: Colors.black45,
-                                      offset: Offset(1, 1),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
+                              Expanded(
+                                child: Text(
+                                  overflow: TextOverflow.ellipsis,
+                                  widget.view.viewName ?? 'Untitled SPT',
+                                  textAlign: TextAlign.justify,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 12),
                               CircleAvatar(
                                 radius: 16,
                                 backgroundColor: Colors.grey.withOpacity(0.3),

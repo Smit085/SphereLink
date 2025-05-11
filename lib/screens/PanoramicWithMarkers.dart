@@ -133,8 +133,9 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: AppColors.appprimaryBackgroundColor,
           actionsPadding: const EdgeInsets.all(8),
-          title: const Text("Save Panorama View"),
+          title: const Text("Save Your Tour"),
           content: TextField(
             controller: nameController,
             decoration: const InputDecoration(hintText: "Enter view name"),
@@ -147,9 +148,12 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                   _isLoading = false;
                 })
               },
-              child: const Text("Cancel"),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
             ),
-            ElevatedButton(
+            TextButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.appprimaryBackgroundColor,
+              ),
               onPressed: () {
                 final viewName = nameController.text.trim();
                 if (viewName.isNotEmpty) {
@@ -164,7 +168,10 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                     "New view created successfully.", Colors.white, "", null);
                 Navigator.of(context).pop();
               },
-              child: const Text("Save"),
+              child: const Text(
+                "Save",
+                style: TextStyle(color: Colors.blue),
+              ),
             ),
           ],
         );
@@ -302,13 +309,14 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
 
   void _showBottomSheetForImage() {
     showModalBottomSheet(
+      backgroundColor: AppColors.appprimaryBackgroundColor,
       context: context,
       builder: (BuildContext context) {
         return SafeArea(
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.add), // Optional icon
+                leading: const Icon(Icons.add_rounded), // Optional icon
                 title: const Text('Add 360 Image'),
                 onTap: () {
                   _addPanoramaImage();
@@ -316,7 +324,7 @@ class _PanoramicWithMarkersState extends State<PanoramicWithMarkers> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.remove),
+                leading: const Icon(Icons.merge_rounded),
                 title: const Text('Merge and add two Panorama images'),
                 onTap: () {
                   _addMergedPanoramaImages();

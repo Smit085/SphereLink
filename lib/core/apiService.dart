@@ -38,7 +38,8 @@ class ApiService {
   }
 
   /// User Login
-  Future<String?> validateUser(String email, String password) async {
+  Future<Map<String, dynamic>> validateUser(
+      String email, String password) async {
     try {
       final response = await http
           .post(
@@ -51,19 +52,17 @@ class ApiService {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         print("Login Response: ${response.body}");
-        return responseData['message'] == 'Login successful'
-            ? 'Login successful'
-            : 'Login unsuccessful';
+        return responseData;
       } else if (response.statusCode == 401) {
-        return 'Invalid password.';
+        return {'message': 'Invalid password.'};
       } else {
         print('API Error: ${response.statusCode}');
         print('🔍 Response: ${response.body}');
-        return 'Unknown error occurred';
+        return {'message': 'Unknown error occurred'};
       }
     } catch (e) {
       print('Error during API call: $e');
-      return 'Network error';
+      return {'message': 'Unknown error occurred'};
     }
   }
 
@@ -79,7 +78,7 @@ class ApiService {
               'firstName': firstName,
               'lastName': lastName,
               'phoneNumber': phoneNumber,
-              'emailId': emailId,
+              'email': emailId,
               'password': password,
             }),
           )

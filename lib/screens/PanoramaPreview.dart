@@ -1964,7 +1964,7 @@ class _PanoramaPreviewState extends State<PanoramaPreview>
       builder: (context) {
         return AlertDialog(
           actionsPadding: const EdgeInsets.all(8),
-          title: const Text("Save Panorama View"),
+          title: const Text("Save Your Tour"),
           content: TextField(
             controller: nameController,
             decoration: const InputDecoration(hintText: "Enter view name"),

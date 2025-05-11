@@ -92,5 +92,12 @@ class Session {
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('firstName');
+    await prefs.remove('LastName');
+    await prefs.remove('userToken');
+    await prefs.remove('latitude');
+    await prefs.remove('longitude');
+    await prefs.remove('profileImagePath');
+    await prefs.remove('email');
+    await prefs.remove('phoneNumber');
   }
 }

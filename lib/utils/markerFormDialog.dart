@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:spherelink/utils/appColors.dart';
 import 'dart:math' as math;
 import 'dart:io';
 
@@ -382,6 +383,7 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
     return Center(
         child: SingleChildScrollView(
       child: AlertDialog(
+        backgroundColor: AppColors.appprimaryBackgroundColor,
         titlePadding: const EdgeInsets.symmetric(vertical: 16),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -467,7 +469,10 @@ class _MarkerFormDialogState extends State<MarkerFormDialog> {
                     ))
               ],
             ),
-            const Divider(thickness: 4)
+            const Divider(
+              thickness: 3,
+              color: Colors.grey,
+            )
           ],
         ),
         content: ConstrainedBox(

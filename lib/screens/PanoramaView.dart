@@ -17,6 +17,7 @@ import '../data/PanoramaImage.dart';
 import '../data/ViewData.dart';
 import '../utils/RippleWaveIcon.dart';
 import '../utils/appColors.dart';
+import 'ExploreScreen.dart';
 
 class PanoramaView extends StatefulWidget {
   final ViewData view;
@@ -28,6 +29,8 @@ class PanoramaView extends StatefulWidget {
 
 class _PanoramaViewState extends State<PanoramaView>
     with SingleTickerProviderStateMixin {
+  final Map<String, ImageProvider> _imageCache = {};
+
   bool _isFirstLoad = false;
   int? _selectedIndex;
   late MarkerData selectedMarker;
@@ -74,6 +77,50 @@ class _PanoramaViewState extends State<PanoramaView>
     _tabController = TabController(length: 4, vsync: this);
     SystemChrome.setPreferredOrientations(
         [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+  }
+
+  void preloadAdjacentImages(BuildContext context) {
+    if (currentImageId > 0) {
+      precacheImage(
+        CachedNetworkImageProvider(
+          panoramaImages[currentImageId - 1].imageUrl!,
+          cacheManager: customCacheManager,
+        ),
+        context,
+      );
+    }
+    if (currentImageId < panoramaImages.length - 1) {
+      precacheImage(
+        CachedNetworkImageProvider(
+          panoramaImages[currentImageId + 1].imageUrl!,
+          cacheManager: customCacheManager,
+        ),
+        context,
+      );
+    }
+  }
+
+  void precacheCurrentImage(BuildContext context) {
+    final currentImage = panoramaImages[currentImageId];
+    if (currentImage.image != null && currentImage.image!.existsSync()) {
+      precacheImage(FileImage(currentImage.image!), context);
+    } else if (currentImage.imageUrl != null) {
+      precacheImage(
+        NetworkImage(currentImage.imageUrl!),
+        context,
+        onError: (exception, stackTrace) {},
+      );
+    }
+  }
+
+  ImageProvider getCachedImage(File file) {
+    final path = file.path;
+    if (_imageCache.containsKey(path)) {
+      return _imageCache[path]!;
+    }
+    final provider = FileImage(file);
+    _imageCache[path] = provider;
+    return provider;
   }
 
   @override
@@ -373,24 +420,6 @@ class _PanoramaViewState extends State<PanoramaView>
                     ),
                 ]
               : [],
-          child:
-              currentImage?.image != null && currentImage!.image!.existsSync()
-                  ? Image.file(
-                      currentImage.image!,
-                      errorBuilder: (BuildContext context, Object error,
-                          StackTrace? stackTrace) {
-                        return Image.asset('assets/image_load_failed.png');
-                      },
-                    )
-                  : currentImage?.imageUrl != null
-                      ? Image.network(
-                          currentImage!.imageUrl!,
-                          errorBuilder: (BuildContext context, Object error,
-                              StackTrace? stackTrace) {
-                            return Image.asset('assets/image_load_failed.png');
-                          },
-                        )
-                      : Image.asset('assets/image_load_failed.png'),
           onImageLoad: () {
             if (!_isFirstLoad) {
               _isFirstLoad = true;
@@ -442,6 +471,27 @@ class _PanoramaViewState extends State<PanoramaView>
                   }
                 }
               : null,
+          child:
+              currentImage?.image != null && currentImage!.image!.existsSync()
+                  ? Image(
+                      image: getCachedImage(currentImage.image!),
+                      errorBuilder: (BuildContext context, Object error,
+                          StackTrace? stackTrace) {
+                        return Image.asset('assets/image_load_failed.png');
+                      },
+                    )
+                  : currentImage?.imageUrl != null
+                      ? Image(
+                          image: CachedNetworkImageProvider(
+                            currentImage!.imageUrl!,
+                            cacheManager: customCacheManager,
+                          ),
+                          errorBuilder: (BuildContext context, Object error,
+                              StackTrace? stackTrace) {
+                            return Image.asset('assets/image_load_failed.png');
+                          },
+                        )
+                      : Image.asset('assets/image_load_failed.png'),
         ),
         // Cursor for VR mode
         if (viewModes == "VR")
@@ -622,155 +672,154 @@ class _PanoramaViewState extends State<PanoramaView>
                               const BoxDecoration(color: Colors.black45),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 5, vertical: 5),
-                          child: ListView(
+                          child: ListView.builder(
                             scrollDirection: Axis.horizontal,
-                            children: [
-                              for (int index = 0;
-                                  index < panoramaImages.length;
-                                  index++)
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      currentImageId = index;
-                                      _selectedIndex = index;
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Stack(
-                                      children: [
-                                        Container(
+                            itemCount: panoramaImages.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    currentImageId = index;
+                                    _selectedIndex = index;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: _selectedIndex == index
+                                                ? Colors.blue
+                                                : Colors.transparent,
+                                            width: _selectedIndex == index
+                                                ? 2.0
+                                                : 0.0,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(2),
+                                          child: SizedBox(
+                                            width: 120,
+                                            child: panoramaImages[index]
+                                                            .image !=
+                                                        null &&
+                                                    panoramaImages[index]
+                                                        .image!
+                                                        .existsSync()
+                                                ? Image.file(
+                                                    panoramaImages[index]
+                                                        .image!,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (BuildContext context,
+                                                            Object error,
+                                                            StackTrace?
+                                                                stackTrace) {
+                                                      return Image.asset(
+                                                          'assets/image_load_failed.png');
+                                                    },
+                                                  )
+                                                : CachedNetworkImage(
+                                                    cacheManager:
+                                                        customCacheManager,
+                                                    imageUrl:
+                                                        panoramaImages[index]
+                                                            .imageUrl!,
+                                                    fit: BoxFit.cover,
+                                                    placeholder:
+                                                        (context, url) =>
+                                                            const Center(
+                                                      child: SizedBox(
+                                                        width: 15,
+                                                        height: 15,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    errorWidget:
+                                                        (context, url, error) =>
+                                                            Image.asset(
+                                                      'assets/image_load_failed.png',
+                                                    ),
+                                                    memCacheWidth: 200,
+                                                  ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (panoramaImages[index]
+                                          .markers
+                                          .isNotEmpty)
+                                        Positioned(
+                                          top: 5,
+                                          right: 5,
+                                          child: Row(
+                                            children: [
+                                              GestureDetector(
+                                                onTap: () {
+                                                  setState(() {
+                                                    panoramaImages
+                                                        .removeAt(index);
+                                                    _selectedIndex = null;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.red
+                                                        .withOpacity(0.7),
+                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  child: const Icon(
+                                                    Icons.location_on,
+                                                    size: 15,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      Positioned(
+                                        bottom: 5,
+                                        left: 5,
+                                        child: Container(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 100),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 4),
                                           decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color: _selectedIndex == index
-                                                  ? Colors.blue
-                                                  : Colors.transparent,
-                                              width: _selectedIndex == index
-                                                  ? 2.0
-                                                  : 0.0,
-                                            ),
+                                            color: Colors.black.withAlpha(140),
                                             borderRadius:
                                                 BorderRadius.circular(4),
                                           ),
-                                          child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(2),
-                                            child: SizedBox(
-                                              width: 120,
-                                              child: panoramaImages[index]
-                                                              .image !=
-                                                          null &&
-                                                      panoramaImages[index]
-                                                          .image!
-                                                          .existsSync()
-                                                  ? Image.file(
-                                                      panoramaImages[index]
-                                                          .image!,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (BuildContext context,
-                                                              Object error,
-                                                              StackTrace?
-                                                                  stackTrace) {
-                                                        return Image.asset(
-                                                            'assets/image_load_failed.png');
-                                                      },
-                                                    )
-                                                  : CachedNetworkImage(
-                                                      imageUrl:
-                                                          panoramaImages[index]
-                                                              .imageUrl!,
-                                                      fit: BoxFit.cover,
-                                                      placeholder:
-                                                          (context, url) =>
-                                                              const Center(
-                                                        child: SizedBox(
-                                                          width: 15,
-                                                          height: 15,
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      errorWidget: (context,
-                                                              url, error) =>
-                                                          Image.asset(
-                                                        'assets/image_load_failed.png',
-                                                      ),
-                                                      memCacheWidth: 400,
-                                                    ),
+                                          child: Text(
+                                            panoramaImages[index]
+                                                .imageName
+                                                .toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold,
                                             ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
                                           ),
                                         ),
-                                        if (panoramaImages[index]
-                                            .markers
-                                            .isNotEmpty)
-                                          Positioned(
-                                            top: 5,
-                                            right: 5,
-                                            child: Row(
-                                              children: [
-                                                GestureDetector(
-                                                  onTap: () {
-                                                    setState(() {
-                                                      panoramaImages
-                                                          .removeAt(index);
-                                                      _selectedIndex = null;
-                                                    });
-                                                  },
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: Colors.red
-                                                          .withOpacity(0.7),
-                                                    ),
-                                                    padding:
-                                                        const EdgeInsets.all(4),
-                                                    child: const Icon(
-                                                      Icons.location_on,
-                                                      size: 15,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        Positioned(
-                                          bottom: 5,
-                                          left: 5,
-                                          child: Container(
-                                            constraints: const BoxConstraints(
-                                                maxWidth: 100),
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 6, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  Colors.black.withAlpha(140),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              panoramaImages[index]
-                                                  .imageName
-                                                  .toString(),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                            ],
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -823,6 +872,8 @@ class _PanoramaViewState extends State<PanoramaView>
                         ? () {
                             setState(() {
                               currentImageId--;
+                              preloadAdjacentImages(context);
+                              precacheCurrentImage(context);
                               _selectedIndex = currentImageId;
                             });
                           }
@@ -863,6 +914,8 @@ class _PanoramaViewState extends State<PanoramaView>
                         ? () {
                             setState(() {
                               currentImageId++;
+                              preloadAdjacentImages(context);
+                              precacheCurrentImage(context);
                               _selectedIndex = currentImageId;
                             });
                           }
@@ -1640,6 +1693,8 @@ class _PanoramaViewState extends State<PanoramaView>
                                                                   index]
                                                               .isNotEmpty
                                                       ? CachedNetworkImage(
+                                                          cacheManager:
+                                                              customCacheManager,
                                                           imageUrl: selectedMarker
                                                                   .bannerImageUrl![
                                                               index],

@@ -148,7 +148,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               _passwordError = '';
                             });
 
-                            final response = await ApiService().validateUser(
+                            final responseData =
+                                await ApiService().validateUser(
                               _emailController.text,
                               _passwordController.text,
                             );
@@ -157,14 +158,22 @@ class _LoginScreenState extends State<LoginScreen> {
                               _isLoading = false;
                             });
 
-                            if (response == 'Login successful') {
+                            if (responseData?['message'] ==
+                                'Login successful') {
                               final response = await ApiService()
                                   .getUser(_emailController.text);
-
+                              final token = responseData['token'];
+                              await Session().saveUserToken(token);
                               await Session()
                                   .saveFirstName("${response?['firstName']}");
                               await Session()
                                   .saveLastName("${response?['lastName']}");
+                              await Session().saveEmail(_emailController.text);
+                              await Session().saveProfileImagePath(
+                                  "${response?['profileImagePath']}");
+                              await Session()
+                                  .savePhone("${response?['phoneNumber']}");
+
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 showCustomSnackBar(
                                     context,
@@ -179,9 +188,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => const MainScreen(),
                                   ));
-                            } else if (response == "Invalid password.") {
+                            } else if (responseData?['message'] ==
+                                "Invalid password.") {
                               _passwordError = 'Invalid password.';
-                            } else if (response == "Login unsuccessful") {
+                            } else if (responseData?['message'] ==
+                                "Login unsuccessful") {
                               setState(() {
                                 _emailError = 'Invalid email.';
                               });

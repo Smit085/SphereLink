@@ -457,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen>
                     child: TextField(
                       controller: searchController,
                       decoration: InputDecoration(
-                        hintText: 'Explore your views...',
+                        hintText: 'Explore your tours...',
                         hintStyle: const TextStyle(fontSize: 14),
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
