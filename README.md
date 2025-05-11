@@ -3,7 +3,7 @@
 
 # 🌐 SphereLink
 
-**Immerse yourself in interactive 360° virtual tours.**
+**Immerse yourself in interactive 360° virtual tours.**  
 SphereLink is a Flutter-based mobile application that transforms static panoramic images into dynamic, interactive experiences. Create, customize, and explore virtual tours with markers, multimedia, and seamless navigation, perfect for real estate, tourism, education, and more.
 
 ---
