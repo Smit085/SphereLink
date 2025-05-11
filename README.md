@@ -81,7 +81,7 @@ SphereLink is a Flutter-based mobile application that transforms static panorami
    flutter pub get  
    flutter run  
    ```  
-Add Mappls SDK and Google Cloud API keys to lib/core/AppConfig.dart.
+   Add Mappls SDK and Google Cloud API keys to lib/core/AppConfig.dart.
 
 3. **Run the App**:
    ```bash
