@@ -27,7 +27,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.appprimaryBackgroundColor,
       appBar: AppBar(
+        backgroundColor: AppColors.appprimaryBackgroundColor,
         title: Text('Join Us'),
         centerTitle: true,
       ),
