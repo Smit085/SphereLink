@@ -58,7 +58,7 @@ SphereLink is a Flutter-based mobile application that transforms static panorami
 ## 🛠️ Setup Instructions  
 
 ### Prerequisites
-- Install Flutter and Android Studio.  
+- Install [Flutter](https://flutter.dev/) and [Android Studio](https://developer.android.com/studio).  
 - Ensure dependencies (geolocator, cached_network_image, etc.) are added to pubspec.yaml.
 - Setup the [backend](https://github.com/Smit085/SphereLink/issues) with Spring Boot and PgAdmin.
 - Optional: VR headset for testing.
@@ -66,7 +66,7 @@ SphereLink is a Flutter-based mobile application that transforms static panorami
 ### Steps
 1. **Clone the Repository**:  
    ```bash
-   git clone https://github.com/your-username/SphereLink.git  
+   git clone https://github.com/Smit085/SphereLink.git  
    cd SphereLink  
    ```
    
@@ -89,7 +89,7 @@ Add Mappls SDK and Google Cloud API keys to lib/core/AppConfig.dart.
    ```
 ---
 
-🎯 Roadmap
+## 🎯 Roadmap
 
 - [ ] Cloud storage for tour synchronization across devices.  
 - [ ] Real-time multi-user collaboration for co-editing tours.  
