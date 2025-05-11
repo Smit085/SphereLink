@@ -17,7 +17,7 @@ import 'dart:ui';
 final customCacheManager = CacheManager(
   Config(
     'customCacheKey',
-    maxNrOfCacheObjects: 200,
+    maxNrOfCacheObjects: 400,
     stalePeriod: const Duration(days: 7),
   ),
 );
@@ -354,7 +354,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                     return TextField(
                                       controller: _searchController,
                                       decoration: InputDecoration(
-                                        hintText: 'Explore public views...',
+                                        hintText: 'Explore public tours...',
                                         hintStyle:
                                             const TextStyle(fontSize: 14),
                                         prefixIcon: const Icon(Icons.search),

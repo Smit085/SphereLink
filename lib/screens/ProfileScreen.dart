@@ -3,12 +3,26 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:spherelink/core/session.dart';
 import 'package:spherelink/screens/LoginScreen.dart';
 import 'package:spherelink/utils/appColors.dart';
 import 'package:spherelink/widget/customSnackbar.dart';
 import '../core/AppConfig.dart';
 import '../core/apiService.dart';
+
+// ProfileState to manage profile image URL
+class ProfileState extends ChangeNotifier {
+  String? _profileImageUrl;
+  String? get profileImageUrl => _profileImageUrl;
+
+  ProfileState(String? initialImageUrl) : _profileImageUrl = initialImageUrl;
+
+  void updateProfileImage(String? newImageUrl) {
+    _profileImageUrl = newImageUrl;
+    notifyListeners();
+  }
+}
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -66,6 +80,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await Session().savePhone(_phoneController.text);
         await Session().saveFirstName(_firstNameController.text);
         await Session().saveLastName(_lastNameController.text);
+        String? newProfileImageUrl = await Session().getProfileImagePath();
+        String baseUrl = AppConfig.apiBaseUrl;
+        baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/'));
+        if (newProfileImageUrl != null &&
+            !newProfileImageUrl.startsWith('http')) {
+          newProfileImageUrl = "$baseUrl/$newProfileImageUrl";
+        }
+        // Update global state
+        Provider.of<ProfileState>(context, listen: false)
+            .updateProfileImage(newProfileImageUrl);
 
         showCustomSnackBar(context, Colors.green, "Profile saved successfully",
             Colors.white, "", () => {});
@@ -92,17 +116,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     return null;
   }
-
-  // String? _validateEmail(String? value) {
-  //   if (value == null || value.isEmpty) {
-  //     return 'This field is required';
-  //   }
-  //   if (!RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$')
-  //       .hasMatch(value)) {
-  //     return 'Enter a valid email address';
-  //   }
-  //   return null;
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -138,26 +151,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: CircleAvatar(
                         backgroundColor: AppColors.appprimaryBackgroundColor,
                         radius: 50,
-                        backgroundImage: profileImage != null
-                            ? FileImage(profileImage!)
-                            : profileImageUrl != null
-                                ? CachedNetworkImageProvider(
-                                    profileImageUrl!,
-                                  )
-                                : const AssetImage('assets/profile_1.jpeg'),
-                        // Optionally handle placeholder/error states visually
-                        child: profileImage == null && profileImageUrl == null
-                            ? const Center(
-                                child: SizedBox(
-                                  width: 15,
-                                  height: 15,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                        child: ClipOval(
+                          child: profileImage != null
+                              ? Image.file(
+                                  profileImage!,
+                                  fit: BoxFit.cover,
+                                  width: 100,
+                                  height: 100,
+                                )
+                              : CachedNetworkImage(
+                                  imageUrl: Provider.of<ProfileState>(context)
+                                          .profileImageUrl ??
+                                      '',
+                                  fit: BoxFit.cover,
+                                  width: 100,
+                                  height: 100,
+                                  placeholder: (context, url) => const Center(
+                                    child: SizedBox(
+                                      width: 15,
+                                      height: 15,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Image.asset(
+                                    'assets/default_profile.png',
+                                    fit: BoxFit.cover,
+                                    width: 100,
+                                    height: 100,
                                   ),
                                 ),
-                              )
-                            : null,
+                        ),
                       ),
                     ),
                     if (_isEditing)
@@ -252,9 +279,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ElevatedButton.icon(
                 onPressed: () async {
                   try {
+                    final googleSignIn = GoogleSignIn();
+                    bool isSignedIn = await googleSignIn.isSignedIn();
+
+                    if (isSignedIn) {
+                      // Disconnect and sign out from Google
+                      try {
+                        await googleSignIn.disconnect();
+                      } catch (e) {
+                        print("Error during Google disconnect: $e");
+                      }
+                      try {
+                        await googleSignIn.signOut();
+                      } catch (e) {
+                        print("Error during Google sign out: $e");
+                      }
+                    }
                     await Session().clearSession();
-                    await GoogleSignIn().disconnect();
-                    await GoogleSignIn().signOut();
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -305,6 +346,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!profileImageUrl!.startsWith('http')) {
       profileImageUrl = "$baseUrl/$profileImageUrl";
     }
+    // Initialize ProfileState with the initial profile image URL
+    Provider.of<ProfileState>(context, listen: false)
+        .updateProfileImage(profileImageUrl);
     setState(() {});
   }
 
