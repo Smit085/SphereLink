@@ -32,10 +32,10 @@ SphereLink is a Flutter-based mobile application that transforms static panorami
 ## 📸 Screenshots  
 
 | Feature          | Screenshot                                                                                                   |  
-|------------------|--------------------------------------------------------------------------------------------------------|  
-| Home Screen      | ![Home Screen](https://github.com/user-attachments/assets/622ce660-bc93-4332-85ca-7fb38359354e)              |  
-| Virtual Tour     | ![View Preview Screen](https://github.com/user-attachments/assets/0f3c8d3e-290a-4afb-8099-1827c5ed3ec2)      |  
-| Tour on Map      | ![View Location](https://github.com/user-attachments/assets/ed32a6d9-21f0-4ac4-bd94-2548cda726f7)     |  
+|------------------|--------------------------------------------------------------------------------------------------------------|  
+| Home Screen      | ![Home Screen](https://github.com/user-attachments/assets/d5dc77aa-18b7-41f0-9dbc-a3d9c92ad5ef)              |  
+| Virtual Tour     | ![View Preview Screen](https://github.com/user-attachments/assets/15f81450-0c7f-4637-ad65-b337c2908599)      |  
+| Tour on Map      | ![View Location](https://github.com/user-attachments/assets/21b33b2a-f9f9-4fa5-90be-1000db964fc8)            |  
 
 ---
 
